@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_stat_card"
+    android:orientation="vertical"
+    android:padding="18dp">
+
+    <!-- Top Header Row: Icon Badge -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/statIcon"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_icon_container"
+            android:importantForAccessibility="no"
+            android:padding="8dp"
+            android:src="@drawable/ic_download"
+            app:tint="@color/primary_m3" />
+    </FrameLayout>
+
+    <!-- Stat Caption Title -->
+    <TextView
+        android:id="@+id/statTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:alpha="0.7"
+        android:letterSpacing="0.08"
+        android:textColor="@color/on_surface"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <!-- Stat Value Display -->
+    <TextView
+        android:id="@+id/statValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@color/tertiary_m3"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

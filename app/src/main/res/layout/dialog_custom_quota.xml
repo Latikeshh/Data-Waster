@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enter Target Limit"
+        android:textColor="@color/on_surface"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:boxStrokeColor="@color/tertiary_m3"
+            app:helperText="Auto-stop after limit"
+            app:helperTextTextColor="@color/on_surface_variant"
+            app:hintTextColor="@color/tertiary_m3">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/quotaInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. 750 or 3.5"
+                android:inputType="numberDecimal"
+                android:textColor="@color/on_surface"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <RadioGroup
+            android:id="@+id/unitRadioGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/radioMb"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:checked="true"
+                android:text="MB"
+                android:textColor="@color/on_surface" />
+
+            <RadioButton
+                android:id="@+id/radioGb"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:layout_marginStart="4dp"
+                android:text="GB"
+                android:textColor="@color/on_surface" />
+        </RadioGroup>
+    </LinearLayout>
+</LinearLayout>

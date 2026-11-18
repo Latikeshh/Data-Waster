@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings"
+        android:title="Settings"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_more_info"
+        android:icon="@drawable/ic_zap"
+        android:title="Technical Specs"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_about"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="About Data Burner"
+        app:showAsAction="never" />
+
+</menu>

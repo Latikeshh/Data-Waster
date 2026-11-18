@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/settingsMain"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    tools:context=".SettingsActivity">
+
+    <!-- Top App Bar Toolbar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/settingsAppBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bg_dark"
+        app:elevation="0dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/settingsToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/bg_dark"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/primary_m3"
+            app:title="Settings"
+            app:titleTextColor="@color/primary_m3" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <ScrollView
+        android:id="@+id/settingsScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/settingsAppBarLayout">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="40dp">
+
+            <!-- Section 1: Engine Tuning Header -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="6dp"
+                android:letterSpacing="0.08"
+                android:text="STREAMING ENGINE &amp; CONCURRENCY"
+                android:textColor="@color/primary_m3"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <!-- Grouped Engine Tuning Section Card -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.DataBurner.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stat_card"
+                    android:orientation="vertical">
+
+                    <include
+                        android:id="@+id/cardThreadSetting"
+                        layout="@layout/item_feature_row" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Section 2: Custom Mirrors Header -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="6dp"
+                android:letterSpacing="0.08"
+                android:text="CUSTOM STREAM MIRRORS"
+                android:textColor="@color/primary_m3"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <include
+                android:id="@+id/cardMirrorSetting"
+                layout="@layout/item_feature_row" />
+
+            <!-- Section 3: Quota & Protection Guards Header -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="6dp"
+                android:letterSpacing="0.08"
+                android:text="DATA QUOTA &amp; HARDWARE SAFETY"
+                android:textColor="@color/primary_m3"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <!-- Grouped Quota & Thermal Section Card -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.DataBurner.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stat_card"
+                    android:orientation="vertical">
+
+                    <include
+                        android:id="@+id/cardQuotaSetting"
+                        layout="@layout/item_feature_row" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginHorizontal="18dp"
+                        android:background="#1E2638" />
+
+                    <include
+                        android:id="@+id/cardThermalSetting"
+                        layout="@layout/item_feature_row" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Centralized Reusable Card Style for Data Burner -->
+    <style name="Widget.DataBurner.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/surface_variant</item>
+        <item name="cardCornerRadius">24dp</item>
+        <item name="strokeColor">#262D42</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.DataBurner.HeroCard" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/surface_variant</item>
+        <item name="cardCornerRadius">28dp</item>
+        <item name="strokeColor">#2D354E</item>
+        <item name="strokeWidth">1.2dp</item>
+    </style>
+</resources>

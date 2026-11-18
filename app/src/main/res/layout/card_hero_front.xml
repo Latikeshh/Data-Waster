@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/heroCardFront"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="20dp">
+
+    <!-- Status Indicator Pill -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/statusDot"
+            android:layout_width="9dp"
+            android:layout_height="9dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_status_dot_idle" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:alpha="0.9"
+            android:letterSpacing="0.1"
+            android:text="System Ready"
+            android:textAllCaps="true"
+            android:textColor="@color/primary_m3"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Hardware Accelerated Speedometer Gauge Canvas -->
+    <com.databurner.ui.components.SpeedometerGaugeView
+        android:id="@+id/speedGaugeView"
+        android:layout_width="250dp"
+        android:layout_height="180dp"
+        android:layout_marginTop="4dp" />
+
+    <!-- Real-time Speed Chart View -->
+    <com.databurner.ui.components.RealtimeSpeedChartView
+        android:id="@+id/speedChartView"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="2dp" />
+
+    <!-- Preserved IDs for full compatibility -->
+    <TextView
+        android:id="@+id/speedText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="0.00" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/speedBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:max="100"
+        android:progress="0"
+        android:visibility="gone"
+        app:indicatorColor="@color/tertiary_m3"
+        app:trackColor="#15FFFFFF"
+        app:trackCornerRadius="3dp" />
+
+</LinearLayout>

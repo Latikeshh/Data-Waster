@@ -26,3 +26,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Data Burner"
 include(":app")
+include(":databurner-lib")

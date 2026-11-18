@@ -5,13 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Manages active high-speed CDN data mirrors used by the engine.
- */
 public class ServerManager {
 
-    public static final List<String> DEFAULT_STREAM_SERVERS = new ArrayList<>();
-    private static final Random RANDOM = new Random();
+    private static final List<String> DEFAULT_STREAM_SERVERS = new ArrayList<>();
+    private static final Random random = new Random();
 
     static {
         DEFAULT_STREAM_SERVERS.add("https://ash-speed.hetzner.com/1GB.bin");
@@ -21,26 +18,16 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.belwue.net/10G");
     }
 
-    private final List<String> activeServers = new ArrayList<>();
+    private final List<String> activeServers = new ArrayList<>(DEFAULT_STREAM_SERVERS);
 
     public ServerManager() {
-        this(null);
-    }
-
-    public ServerManager(List<String> customServers) {
-        activeServers.addAll(DEFAULT_STREAM_SERVERS);
-        if (customServers != null && !customServers.isEmpty()) {
-            for (String server : customServers) {
-                addCustomServer(server);
-            }
-        }
     }
 
     public synchronized String getRandomServerUrl() {
         if (activeServers.isEmpty()) {
-            return DEFAULT_STREAM_SERVERS.get(RANDOM.nextInt(DEFAULT_STREAM_SERVERS.size()));
+            return DEFAULT_STREAM_SERVERS.get(random.nextInt(DEFAULT_STREAM_SERVERS.size()));
         }
-        return activeServers.get(RANDOM.nextInt(activeServers.size()));
+        return activeServers.get(random.nextInt(activeServers.size()));
     }
 
     public synchronized List<String> getActiveServers() {

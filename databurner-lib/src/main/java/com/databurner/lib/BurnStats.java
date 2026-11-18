@@ -1,27 +1,29 @@
 package com.databurner.lib;
 
 /**
- * Data container containing real-time data burning telemetry statistics.
+ * Data container holding real-time telemetry statistics matching Data Burner app.
  */
 public class BurnStats {
 
     private final long bytesPerSec;
     private final double speedMBps;
+    private final double peakSpeedMBps;
+    private final double avgSpeedMBps;
     private final long totalBytesBurned;
     private final double totalMBBurned;
-    private final double avgSpeedMBps;
     private final long elapsedSeconds;
     private final int activeThreads;
     private final String lastResponseStatus;
 
-    public BurnStats(long bytesPerSec, double speedMBps, long totalBytesBurned,
-                     double totalMBBurned, double avgSpeedMBps, long elapsedSeconds,
-                     int activeThreads, String lastResponseStatus) {
+    public BurnStats(long bytesPerSec, double speedMBps, double peakSpeedMBps,
+                     double avgSpeedMBps, long totalBytesBurned, double totalMBBurned,
+                     long elapsedSeconds, int activeThreads, String lastResponseStatus) {
         this.bytesPerSec = bytesPerSec;
         this.speedMBps = speedMBps;
+        this.peakSpeedMBps = peakSpeedMBps;
+        this.avgSpeedMBps = avgSpeedMBps;
         this.totalBytesBurned = totalBytesBurned;
         this.totalMBBurned = totalMBBurned;
-        this.avgSpeedMBps = avgSpeedMBps;
         this.elapsedSeconds = elapsedSeconds;
         this.activeThreads = activeThreads;
         this.lastResponseStatus = lastResponseStatus;
@@ -35,16 +37,20 @@ public class BurnStats {
         return speedMBps;
     }
 
+    public double getPeakSpeedMBps() {
+        return peakSpeedMBps;
+    }
+
+    public double getAvgSpeedMBps() {
+        return avgSpeedMBps;
+    }
+
     public long getTotalBytesBurned() {
         return totalBytesBurned;
     }
 
     public double getTotalMBBurned() {
         return totalMBBurned;
-    }
-
-    public double getAvgSpeedMBps() {
-        return avgSpeedMBps;
     }
 
     public long getElapsedSeconds() {
@@ -66,7 +72,7 @@ public class BurnStats {
 
     @Override
     public String toString() {
-        return String.format("BurnStats{speed=%.2f MB/s, total=%.2f MB, threads=%d, time=%s, status='%s'}",
-                speedMBps, totalMBBurned, activeThreads, getFormattedSessionTime(), lastResponseStatus);
+        return String.format("BurnStats{speed=%.2f MB/s, peak=%.2f MB/s, avg=%.2f MB/s, total=%.2f MB, threads=%d, time=%s, status='%s'}",
+                speedMBps, peakSpeedMBps, avgSpeedMBps, totalMBBurned, activeThreads, getFormattedSessionTime(), lastResponseStatus);
     }
 }

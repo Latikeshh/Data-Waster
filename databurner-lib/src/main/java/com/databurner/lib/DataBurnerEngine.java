@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Core high-performance multi-threaded Data Burning Engine.
+ * High-performance multi-threaded Data Burning Engine matching Data Burner App implementation.
  */
 public class DataBurnerEngine {
 
@@ -21,13 +21,15 @@ public class DataBurnerEngine {
     private final AtomicLong totalBytesThisSec = new AtomicLong(0);
     private final AtomicLong totalBytesSession = new AtomicLong(0);
     private final AtomicLong totalActiveSeconds = new AtomicLong(0);
-    private final AtomicInteger activeThreads = new AtomicInteger(0);
+    private static final AtomicInteger activeThreads = new AtomicInteger(0);
 
     private volatile boolean isRunning = false;
+    private volatile boolean streamsRunning = false;
     private volatile boolean stopRequested = false;
-    private volatile String lastResponseStatus = "Idle";
+    private static volatile String lastResponseStatus = "Idle";
+    private volatile float peakSpeed = 0f;
 
-    private ExecutorService threadPool;
+    private ExecutorService executorService;
     private ScheduledExecutorService monitorScheduler;
     private DataBurnerListener listener;
 
@@ -37,7 +39,12 @@ public class DataBurnerEngine {
 
     public DataBurnerEngine(DataBurnerConfig config) {
         this.config = config != null ? config : new DataBurnerConfig.Builder().build();
-        this.serverManager = new ServerManager(this.config.getCustomServers());
+        this.serverManager = new ServerManager();
+        if (this.config.getCustomServers() != null) {
+            for (String server : this.config.getCustomServers()) {
+                this.serverManager.addCustomServer(server);
+            }
+        }
     }
 
     public synchronized void setListener(DataBurnerListener listener) {
@@ -48,17 +55,28 @@ public class DataBurnerEngine {
         return isRunning;
     }
 
+    public static int getActiveThreads() {
+        return activeThreads.get();
+    }
+
+    public static String getLastResponseStatus() {
+        return lastResponseStatus;
+    }
+
     public synchronized void start() {
         if (isRunning) return;
         isRunning = true;
+        streamsRunning = true;
         stopRequested = false;
 
         System.setProperty("http.keepAlive", "true");
-        System.setProperty("http.maxConnections", String.valueOf(config.getThreadCount() + 10));
+        System.setProperty("http.maxConnections", "35");
 
-        threadPool = Executors.newFixedThreadPool(config.getThreadCount());
-        for (int i = 0; i < config.getThreadCount(); i++) {
-            threadPool.execute(this::runStreamLoop);
+        int threadCount = config.getThreadCount();
+        executorService = Executors.newFixedThreadPool(threadCount + 2);
+
+        for (int i = 0; i < threadCount; i++) {
+            executorService.execute(this::runStreamLoop);
         }
 
         monitorScheduler = Executors.newSingleThreadScheduledExecutor();
@@ -72,11 +90,12 @@ public class DataBurnerEngine {
     public synchronized void stop() {
         if (!isRunning) return;
         stopRequested = true;
+        streamsRunning = false;
         isRunning = false;
 
-        if (threadPool != null) {
-            threadPool.shutdownNow();
-            threadPool = null;
+        if (executorService != null) {
+            executorService.shutdownNow();
+            executorService = null;
         }
         if (monitorScheduler != null) {
             monitorScheduler.shutdownNow();
@@ -92,13 +111,14 @@ public class DataBurnerEngine {
         totalBytesThisSec.set(0);
         totalBytesSession.set(0);
         totalActiveSeconds.set(0);
+        peakSpeed = 0f;
     }
 
     private void runStreamLoop() {
-        byte[] buffer = new byte[config.getBufferSize()];
+        byte[] buffer = new byte[64 * 1024];
         activeThreads.incrementAndGet();
         try {
-            while (!stopRequested && isRunning) {
+            while (!stopRequested && streamsRunning) {
                 HttpURLConnection conn = null;
                 InputStream in = null;
                 boolean errorOccurred = false;
@@ -106,9 +126,9 @@ public class DataBurnerEngine {
                     URL url = new URL(serverManager.getRandomServerUrl());
                     conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestProperty("Connection", "keep-alive");
-                    conn.setRequestProperty("User-Agent", config.getUserAgent());
-                    conn.setConnectTimeout(config.getConnectTimeoutMs());
-                    conn.setReadTimeout(config.getReadTimeoutMs());
+                    conn.setRequestProperty("User-Agent", "DataBurner/2.0");
+                    conn.setConnectTimeout(5000);
+                    conn.setReadTimeout(8000);
                     conn.connect();
 
                     int code = conn.getResponseCode();
@@ -117,7 +137,7 @@ public class DataBurnerEngine {
                     if (code == 200) {
                         in = new BufferedInputStream(conn.getInputStream());
                         int read;
-                        while (!stopRequested && isRunning && (read = in.read(buffer)) != -1) {
+                        while (!stopRequested && streamsRunning && (read = in.read(buffer)) != -1) {
                             totalBytesThisSec.addAndGet(read);
                             totalBytesSession.addAndGet(read);
                         }
@@ -132,9 +152,10 @@ public class DataBurnerEngine {
                     try {
                         if (in != null) in.close();
                     } catch (Exception ignored) {}
+                    // Do NOT call conn.disconnect() to preserve persistent HTTP Keep-Alive connection pooling!
                 }
-                if (!stopRequested && isRunning && errorOccurred) {
-                    try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+                if (!stopRequested && streamsRunning && errorOccurred) {
+                    try { Thread.sleep(60); } catch (InterruptedException ignored) {}
                 }
             }
         } finally {
@@ -145,21 +166,26 @@ public class DataBurnerEngine {
     private void monitorTick() {
         if (!isRunning) return;
 
-        long bytesLastSec = totalBytesThisSec.getAndSet(0);
-        long totalBytes = totalBytesSession.get();
-        long activeSecs = totalActiveSeconds.incrementAndGet();
+        long elapsedSec = totalActiveSeconds.incrementAndGet();
+        long bytes = totalBytesThisSec.getAndSet(0);
+        float mb = bytes / (1024f * 1024f);
 
-        double speedMBs = bytesLastSec / (1024.0 * 1024.0);
-        double totalMBs = totalBytes / (1024.0 * 1024.0);
-        double avgSpeedMBs = activeSecs > 0 ? (totalMBs / activeSecs) : 0.0;
+        if (mb > peakSpeed) {
+            peakSpeed = mb;
+        }
+
+        long totalBytes = totalBytesSession.get();
+        double totalMB = totalBytes / (1024.0 * 1024.0);
+        float avgSpeed = elapsedSec > 0 ? (float) (totalMB / elapsedSec) : 0f;
 
         BurnStats stats = new BurnStats(
-                bytesLastSec,
-                speedMBs,
+                bytes,
+                mb,
+                peakSpeed,
+                avgSpeed,
                 totalBytes,
-                totalMBs,
-                avgSpeedMBs,
-                activeSecs,
+                totalMB,
+                elapsedSec,
                 activeThreads.get(),
                 lastResponseStatus
         );
@@ -168,7 +194,8 @@ public class DataBurnerEngine {
             listener.onTick(stats);
         }
 
-        if (config.getQuotaBytes() > 0 && totalBytes >= config.getQuotaBytes()) {
+        long quotaBytes = config.getQuotaBytes();
+        if (quotaBytes > 0 && totalBytes >= quotaBytes) {
             stop();
             if (listener != null) {
                 listener.onQuotaReached(stats);

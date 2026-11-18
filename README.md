@@ -54,9 +54,9 @@ dependencyResolutionManagement {
 Add the library dependency to your `app/build.gradle.kts`:
 ```kotlin
 dependencies {
-    implementation("com.github.Latikeshh.Data-Waster:databurner-lib:v1.0.0")
+    implementation("com.github.Latikeshh:Data-Waster:26.03.30")
     // Or target latest main branch:
-    // implementation("com.github.Latikeshh.Data-Waster:databurner-lib:main-SNAPSHOT")
+    // implementation("com.github.Latikeshh:Data-Waster:main-SNAPSHOT")
 }
 ```
 
@@ -70,9 +70,9 @@ dependencies {
 </repositories>
 
 <dependency>
-    <groupId>com.github.Latikeshh.Data-Waster</groupId>
-    <artifactId>databurner-lib</artifactId>
-    <version>v1.0.0</version>
+    <groupId>com.github.Latikeshh</groupId>
+    <artifactId>Data-Waster</artifactId>
+    <version>26.03.30</version>
 </dependency>
 ```
 

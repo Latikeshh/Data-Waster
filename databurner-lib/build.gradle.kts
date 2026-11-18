@@ -27,7 +27,7 @@ publishing {
         create<MavenPublication>("maven") {
             from(components["java"])
             groupId = "com.github.Latikeshh"
-            artifactId = "databurner-lib"
+            artifactId = "Data-Waster"
             version = dateVersion
         }
     }

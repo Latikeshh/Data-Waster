@@ -1,6 +1,7 @@
 # Data Burner (Data-Waster) 🔥
 
 [![APK Builder & Release Maker](https://github.com/Latikeshh/Data-Waster/actions/workflows/apk-builder.yml/badge.svg)](https://github.com/Latikeshh/Data-Waster/actions/workflows/apk-builder.yml)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](.github/dependabot.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Android Min SDK: 26](https://img.shields.io/badge/Min%20SDK-26%20(Android%208.0)-brightgreen.svg)](https://developer.android.com)
 [![Java 11](https://img.shields.io/badge/Java-11%2B-orange.svg)](https://www.oracle.com/java/)
@@ -21,13 +22,23 @@
 
 ---
 
+## 🤖 Automated Free Release Bots & Workflows
+
+This repository is configured with automated GitHub bots and workflows:
+- **`github-actions[bot]`**: Automatically builds signed `app-release.apk`, `app-debug.apk`, and `databurner-lib.jar` binaries whenever a commit or tag is pushed.
+- **`dependabot[bot]`**: Automatically checks and submits pull requests for weekly updates to Gradle dependencies and GitHub Actions.
+
+For detailed release workflows and versioning instructions, see [**`RELEASE.md`**](RELEASE.md).
+
+---
+
 ## 🚀 Quick Start: Java Library Integration (`databurner-lib`)
 
 You can use the core Data Burner engine directly in your Java/Android projects without any UI dependencies!
 
 ### 1. Add Gradle Dependency
 
-Include `:databurner-lib` in your project or import the compiled JAR/AAR:
+Include `:databurner-lib` in your project or import the compiled `databurner-lib.jar` from Releases:
 
 ```kotlin
 // settings.gradle.kts
@@ -61,8 +72,9 @@ DataBurnerEngine engine = new DataBurnerEngine(config);
 engine.setListener(new DataBurnerListener() {
     @Override
     public void onTick(BurnStats stats) {
-        System.out.printf("Speed: %.2f MB/s | Total: %.2f MB | Threads: %d | Status: %s%n",
+        System.out.printf("Speed: %.2f MB/s | Peak: %.2f MB/s | Total: %.2f MB | Threads: %d | Status: %s%n",
                 stats.getSpeedMBps(),
+                stats.getPeakSpeedMBps(),
                 stats.getTotalMBBurned(),
                 stats.getActiveThreads(),
                 stats.getLastResponseStatus());
@@ -122,12 +134,14 @@ cd Data-Waster
 
 ---
 
-## 📜 Contributing
+## 📜 Contributing & Releases
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on code style, submitting issues, and pull request workflows.
+- Please see [**`CONTRIBUTING.md`**](CONTRIBUTING.md) for contribution guidelines.
+- Please see [**`RELEASE.md`**](RELEASE.md) for automated build and release instructions.
+- Please see [**`SECURITY.md`**](SECURITY.md) for security policy.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [**`LICENSE`**](LICENSE) file for details.

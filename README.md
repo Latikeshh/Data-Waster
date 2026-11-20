@@ -1,7 +1,7 @@
 # Data Burner (Data-Waster) 🔥
 
 [![APK Builder & Release Maker](https://github.com/Latikeshh/Data-Waster/actions/workflows/apk-builder.yml/badge.svg)](https://github.com/Latikeshh/Data-Waster/actions/workflows/apk-builder.yml)
-[![JitPack](https://jitpack.io/v/Latikeshh/Data-Waster.svg)](https://jitpack.io/#Latikeshh/Data-Waster)
+[![](https://jitpack.io/v/Latikeshh/Data-Waster.svg)](https://jitpack.io/#Latikeshh/Data-Waster)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](.github/dependabot.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Android Min SDK: 26](https://img.shields.io/badge/Min%20SDK-26%20(Android%208.0)-brightgreen.svg)](https://developer.android.com)

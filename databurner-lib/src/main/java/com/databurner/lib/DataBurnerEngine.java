@@ -65,12 +65,17 @@ public class DataBurnerEngine {
 
     public synchronized void start(Object androidContext) {
         if (androidContext != null) {
-            AndroidBurnHelper.acquireLocks(androidContext);
+            AndroidBurnHelper.checkPermissionsAndShowDialogIfNeeded(androidContext, this::startInternal);
+        } else {
+            startInternal();
         }
-        start();
     }
 
     public synchronized void start() {
+        startInternal();
+    }
+
+    private synchronized void startInternal() {
         if (isRunning) return;
         isRunning = true;
         streamsRunning = true;

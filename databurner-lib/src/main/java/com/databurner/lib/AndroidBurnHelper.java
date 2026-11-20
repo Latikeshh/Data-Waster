@@ -1,21 +1,146 @@
 package com.databurner.lib;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Android helper utility for databurner-lib.
- * Manages CPU WakeLocks, WiFi Locks, and Battery Optimization permissions seamlessly on Android devices
- * without adding hard compile dependencies.
+ * Automatically checks permissions, displays a non-cancelable Material dialog if missing,
+ * and manages CPU WakeLocks and WiFi Locks on Android devices seamlessly.
  */
 public class AndroidBurnHelper {
 
     private static Object wakeLock;
     private static Object wifiLock;
+    private static Object activeDialog;
+
+    /**
+     * Automatically checks mandatory permissions (READ_PHONE_STATE, POST_NOTIFICATIONS, Battery Optimization).
+     * If permissions are missing, displays a non-cancelable dialog box directly on the screen.
+     * Once permissions are granted, acquires CPU/WiFi locks and invokes onGranted.
+     */
+    public static void checkPermissionsAndShowDialogIfNeeded(Object contextObj, Runnable onGranted) {
+        if (contextObj == null) {
+            if (onGranted != null) onGranted.run();
+            return;
+        }
+
+        try {
+            Class<?> contextClass = Class.forName("android.content.Context");
+            Class<?> activityClass = Class.forName("android.app.Activity");
+
+            if (!activityClass.isInstance(contextObj)) {
+                // Non-Activity context: Acquire locks and proceed
+                acquireLocks(contextObj);
+                if (onGranted != null) onGranted.run();
+                return;
+            }
+
+            Class<?> compatClass = Class.forName("androidx.core.content.ContextCompat");
+            Method checkSelfPermission = compatClass.getMethod("checkSelfPermission", contextClass, String.class);
+
+            // 1. Check READ_PHONE_STATE
+            int phoneStateResult = (int) checkSelfPermission.invoke(null, contextObj, "android.permission.READ_PHONE_STATE");
+            boolean needPhoneState = (phoneStateResult != 0);
+
+            // 2. Check POST_NOTIFICATIONS (Android 13+ / API 33)
+            boolean needNotification = false;
+            Class<?> buildClass = Class.forName("android.os.Build$VERSION");
+            int sdkInt = buildClass.getField("SDK_INT").getInt(null);
+            if (sdkInt >= 33) {
+                int notifResult = (int) checkSelfPermission.invoke(null, contextObj, "android.permission.POST_NOTIFICATIONS");
+                needNotification = (notifResult != 0);
+            }
+
+            // 3. Check Battery Optimization
+            boolean needBatteryOpt = !isIgnoringBatteryOptimizations(contextObj);
+
+            if (needPhoneState || needNotification || needBatteryOpt) {
+                showReflectiveMandatoryDialog(contextObj, needPhoneState, needNotification, needBatteryOpt, onGranted);
+            } else {
+                acquireLocks(contextObj);
+                if (onGranted != null) onGranted.run();
+            }
+        } catch (Exception e) {
+            acquireLocks(contextObj);
+            if (onGranted != null) onGranted.run();
+        }
+    }
+
+    private static void showReflectiveMandatoryDialog(Object activityObj, boolean needPhoneState,
+                                                      boolean needNotification, boolean needBatteryOpt,
+                                                      Runnable onGranted) {
+        try {
+            if (activeDialog != null) {
+                Method isShowing = activeDialog.getClass().getMethod("isShowing");
+                if ((boolean) isShowing.invoke(activeDialog)) return;
+            }
+
+            StringBuilder msg = new StringBuilder("Data Burner requires the following permissions to function properly:\n\n");
+            if (needPhoneState) msg.append("• Phone State: Detect 5G/4G cellular network status.\n");
+            if (needNotification) msg.append("• Notifications: Show active speed & status bar notifications.\n");
+            if (needBatteryOpt) msg.append("• Unrestricted Battery: Keep streaming data when screen is OFF.\n");
+            msg.append("\nPlease tap 'Grant Permissions' to proceed.");
+
+            Class<?> builderClass;
+            try {
+                builderClass = Class.forName("com.google.android.material.dialog.MaterialAlertDialogBuilder");
+            } catch (ClassNotFoundException e) {
+                builderClass = Class.forName("android.app.AlertDialog$Builder");
+            }
+
+            Class<?> contextClass = Class.forName("android.content.Context");
+            Object builder = builderClass.getConstructor(contextClass).newInstance(activityObj);
+
+            Method setTitle = builderClass.getMethod("setTitle", CharSequence.class);
+            Method setMessage = builderClass.getMethod("setMessage", CharSequence.class);
+            Method setCancelable = builderClass.getMethod("setCancelable", boolean.class);
+
+            setTitle.invoke(builder, "Mandatory Permissions Required");
+            setMessage.invoke(builder, msg.toString());
+            setCancelable.invoke(builder, false);
+
+            Class<?> listenerClass = Class.forName("android.content.DialogInterface$OnClickListener");
+            Object positiveListener = Proxy.newProxyInstance(
+                    listenerClass.getClassLoader(),
+                    new Class<?>[]{listenerClass},
+                    (proxy, method, args) -> {
+                        if ("onClick".equals(method.getName())) {
+                            activeDialog = null;
+                            if (needPhoneState || needNotification) {
+                                List<String> list = new ArrayList<>();
+                                if (needPhoneState) list.add("android.permission.READ_PHONE_STATE");
+                                if (needNotification) list.add("android.permission.POST_NOTIFICATIONS");
+
+                                Class<?> compatClass = Class.forName("androidx.core.app.ActivityCompat");
+                                Method requestPermissions = compatClass.getMethod("requestPermissions",
+                                        Class.forName("android.app.Activity"), String[].class, int.class);
+                                requestPermissions.invoke(null, activityObj, list.toArray(new String[0]), 100);
+                            } else if (needBatteryOpt) {
+                                requestUnrestrictedBattery(activityObj);
+                            }
+                        }
+                        return null;
+                    }
+            );
+
+            Method setPositiveButton = builderClass.getMethod("setPositiveButton", CharSequence.class, listenerClass);
+            setPositiveButton.invoke(builder, "Grant Permissions", positiveListener);
+
+            Method create = builderClass.getMethod("create");
+            activeDialog = create.invoke(builder);
+            Method show = activeDialog.getClass().getMethod("show");
+            show.invoke(activeDialog);
+        } catch (Exception e) {
+            acquireLocks(activityObj);
+            if (onGranted != null) onGranted.run();
+        }
+    }
 
     /**
      * Acquires CPU PARTIAL_WAKE_LOCK and High-Perf WiFi Lock on Android.
-     * @param contextObj Android Context object (Activity or Service)
-     * @return true if locks were acquired successfully
      */
     public static synchronized boolean acquireLocks(Object contextObj) {
         if (contextObj == null) return false;
@@ -24,7 +149,6 @@ public class AndroidBurnHelper {
             Method getSystemService = contextClass.getMethod("getSystemService", String.class);
             Method getApplicationContext = contextClass.getMethod("getApplicationContext");
 
-            // PowerManager.WakeLock
             String powerService = (String) contextClass.getField("POWER_SERVICE").get(null);
             Object powerManager = getSystemService.invoke(contextObj, powerService);
             if (powerManager != null) {
@@ -38,7 +162,6 @@ public class AndroidBurnHelper {
                 }
             }
 
-            // WifiManager.WifiLock
             Object appCtx = getApplicationContext.invoke(contextObj);
             String wifiService = (String) contextClass.getField("WIFI_SERVICE").get(null);
             Object wifiManager = getSystemService.invoke(appCtx, wifiService);
@@ -88,8 +211,6 @@ public class AndroidBurnHelper {
 
     /**
      * Checks if app is ignoring battery optimizations (Unrestricted Battery Usage).
-     * @param contextObj Android Context object
-     * @return true if battery optimizations are ignored
      */
     public static boolean isIgnoringBatteryOptimizations(Object contextObj) {
         if (contextObj == null) return true;
@@ -113,7 +234,6 @@ public class AndroidBurnHelper {
 
     /**
      * Launches system dialog to request Unrestricted Battery Optimization exemption.
-     * @param contextObj Android Context object
      */
     public static void requestUnrestrictedBattery(Object contextObj) {
         if (contextObj == null) return;

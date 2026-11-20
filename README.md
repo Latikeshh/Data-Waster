@@ -138,18 +138,15 @@ engine.setListener(new DataBurnerListener() {
     }
 });
 
-// Start data burning (Standard JVM)
-engine.start();
+// On Android: Pass Activity ('this').
+// The library AUTOMATICALLY checks permissions, shows non-cancelable dialogs if missing,
+// acquires CPU WakeLocks & WiFi Locks, and starts streaming—zero permission code needed!
+engine.start(this); 
 
-// Start data burning on Android (Automatically acquires CPU WakeLock & WiFi Lock)
-// engine.start(context);
+// On Standard JVM:
+// engine.start();
 
-// Check & request Unrestricted Battery Optimization on Android
-// if (!AndroidBurnHelper.isIgnoringBatteryOptimizations(context)) {
-//     AndroidBurnHelper.requestUnrestrictedBattery(context);
-// }
-
-// Stop data burning (Automatically releases locks)
+// Stop data burning (Automatically releases CPU & WiFi locks)
 engine.stop();
 ```
 

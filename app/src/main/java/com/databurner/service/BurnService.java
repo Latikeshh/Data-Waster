@@ -25,6 +25,8 @@ import android.os.Vibrator;
 import android.net.wifi.WifiManager;
 import android.telephony.TelephonyManager;
 
+import com.databurner.util.DebugLogger;
+
 import androidx.annotation.RequiresPermission;
 import androidx.core.app.ActivityCompat;
 
@@ -107,6 +109,28 @@ public class BurnService extends Service {
         } catch (Exception ignored) {}
 
         initSoundPool();
+
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            DebugLogger.logException(
+                    getApplicationContext(),
+                    "UNCAUGHT_CRASH_RECOVERED",
+                    "Uncaught exception in " + thread.getName(),
+                    throwable,
+                    totalActiveSeconds.get(),
+                    prefs.getLong("used_bytes", 0L) + totalBytesSession.get(),
+                    activeThreads.get()
+            );
+        });
+
+        DebugLogger.logEvent(
+                this,
+                "SERVICE_STARTED",
+                "BurnService initialized / recovered.",
+                totalActiveSeconds.get(),
+                prefs.getLong("used_bytes", 0L) + totalBytesSession.get(),
+                activeThreads.get()
+        );
+
         startEngine();
     }
 
@@ -206,7 +230,7 @@ public class BurnService extends Service {
                             stopContinuousVibration();
                         }
 
-                        // 3. Burner Stream Logic
+                        // 3. Burner Stream Logic & Auto-Repair
                         if (thermalOrBatteryExceeded) {
                             broadcastStatus("PAUSED — THERMAL / BATTERY GUARD");
                             stopStreams();
@@ -216,6 +240,18 @@ public class BurnService extends Service {
                         } else {
                             broadcastStatus("Running on 5G");
                             if (!streamsRunning && isBurningStarted) {
+                                startStreams();
+                            } else if (isBurningStarted && streamsRunning && activeThreads.get() == 0) {
+                                DebugLogger.logEvent(
+                                        getApplicationContext(),
+                                        "AUTO_REPAIR",
+                                        "Stalled streams detected (0 active threads). Restarting stream loops.",
+                                        totalActiveSeconds.get(),
+                                        prefs.getLong("used_bytes", 0L) + totalBytesSession.get(),
+                                        0
+                                );
+                                stopStreams();
+                                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
                                 startStreams();
                             }
                         }
@@ -307,6 +343,15 @@ public class BurnService extends Service {
                 } catch (Exception e) {
                     errorOccurred = true;
                     lastResponseStatus = "Connecting...";
+                    DebugLogger.logException(
+                            getApplicationContext(),
+                            "STREAM_ERROR_REPAIRING",
+                            "Stream error: " + e.getMessage(),
+                            e,
+                            totalActiveSeconds.get(),
+                            prefs.getLong("used_bytes", 0L) + totalBytesSession.get(),
+                            activeThreads.get()
+                    );
                 } finally {
                     try {
                         if (in != null) in.close();

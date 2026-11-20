@@ -43,6 +43,11 @@
             android:exported="false"
             android:theme="@style/Theme.DataBurner" />
 
+        <activity
+            android:name=".ui.activities.DebugLogActivity"
+            android:exported="false"
+            android:theme="@style/Theme.DataBurner" />
+
         <service
             android:name=".service.BurnService"
             android:enabled="true"

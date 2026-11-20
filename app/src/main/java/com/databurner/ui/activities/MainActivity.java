@@ -117,6 +117,11 @@ public class MainActivity extends AppCompatActivity {
 					intent.putExtra(AboutActivity.EXTRA_PAGE_TYPE, AboutActivity.PAGE_MORE_INFO);
 					startActivity(intent);
 					return true;
+				} else if (id == R.id.action_debug_logs) {
+					triggerHapticFeedback(topAppBar);
+					Intent intent = new Intent(this, DebugLogActivity.class);
+					startActivity(intent);
+					return true;
 				} else if (id == R.id.action_about) {
 					triggerHapticFeedback(topAppBar);
 					Intent intent = new Intent(this, AboutActivity.class);

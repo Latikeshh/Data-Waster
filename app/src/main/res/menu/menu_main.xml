@@ -15,6 +15,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_debug_logs"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="Diagnostic Logs"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_about"
         android:icon="@android:drawable/ic_menu_info_details"
         android:title="About Data Burner"

@@ -9,7 +9,7 @@ import java.util.Random;
 
 /**
  * High-performance Server Manager for Data Burner Library.
- * Manages ultra-high-speed 10G+ CDN binary stream mirrors with smart failover and auto-blacklisting.
+ * Manages ultra-high-speed 10G+ CDN binary stream mirrors with even thread distribution, smart failover, and auto-blacklisting.
  */
 public class ServerManager {
 
@@ -47,7 +47,11 @@ public class ServerManager {
         }
     }
 
-    public synchronized String getRandomServerUrl() {
+    /**
+     * Evenly assigns a mirror URL to a worker thread based on threadIndex.
+     * E.g. 20 threads and 5 URLs = exactly 4 threads per URL.
+     */
+    public synchronized String getServerUrlForThread(int threadIndex) {
         long now = System.currentTimeMillis();
         List<String> available = new ArrayList<>();
 
@@ -65,9 +69,13 @@ public class ServerManager {
         }
 
         if (available.isEmpty()) {
-            return DEFAULT_STREAM_SERVERS.get(random.nextInt(DEFAULT_STREAM_SERVERS.size()));
+            return DEFAULT_STREAM_SERVERS.get(Math.abs(threadIndex) % DEFAULT_STREAM_SERVERS.size());
         }
-        return available.get(random.nextInt(available.size()));
+        return available.get(Math.abs(threadIndex) % available.size());
+    }
+
+    public synchronized String getRandomServerUrl() {
+        return getServerUrlForThread(random.nextInt(1000));
     }
 
     public synchronized void markServerSuccess(String url) {

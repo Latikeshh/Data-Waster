@@ -304,7 +304,8 @@ public class BurnService extends Service {
         streamsRunning = true;
         int threadCount = prefs.getInt("thread_count", 20);
         for (int i = 0; i < threadCount; i++) {
-            executorService.execute(this::runStreamLoop);
+            final int threadIndex = i;
+            executorService.execute(() -> runStreamLoop(threadIndex));
         }
     }
 
@@ -312,7 +313,7 @@ public class BurnService extends Service {
         streamsRunning = false;
     }
 
-    private void runStreamLoop() {
+    private void runStreamLoop(int threadIndex) {
         byte[] buffer = new byte[64 * 1024];
         activeThreads.incrementAndGet();
         try {
@@ -322,7 +323,7 @@ public class BurnService extends Service {
                 boolean errorOccurred = false;
                 String targetUrl = null;
                 try {
-                    targetUrl = serverManager.getRandomServerUrl();
+                    targetUrl = serverManager.getServerUrlForThread(threadIndex);
                     URL url = new URL(targetUrl);
                     conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestProperty("Connection", "keep-alive");

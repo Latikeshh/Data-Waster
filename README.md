@@ -54,7 +54,7 @@ dependencyResolutionManagement {
 Add the library dependency to your `app/build.gradle.kts`:
 ```kotlin
 dependencies {
-    implementation("com.github.Latikeshh:Data-Waster:26.03.30")
+    implementation("com.github.Latikeshh:Data-Waster:26.11.20")
     // Or target latest main branch:
     // implementation("com.github.Latikeshh:Data-Waster:main-SNAPSHOT")
 }
@@ -72,7 +72,7 @@ dependencies {
 <dependency>
     <groupId>com.github.Latikeshh</groupId>
     <artifactId>Data-Waster</artifactId>
-    <version>26.03.30</version>
+    <version>26.11.20</version>
 </dependency>
 ```
 

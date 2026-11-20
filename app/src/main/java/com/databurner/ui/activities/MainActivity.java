@@ -237,6 +237,13 @@ public class MainActivity extends AppCompatActivity {
 
 		startBtn.setOnClickListener(v -> {
 			triggerHapticFeedback(v);
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+				android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+				if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+					checkAndPromptBatteryOptimization();
+					return;
+				}
+			}
 			Intent startIntent = new Intent(this, BurnService.class);
 			startIntent.setAction(BurnService.ACTION_START);
 			startForegroundService(startIntent);
@@ -258,6 +265,39 @@ public class MainActivity extends AppCompatActivity {
 				handler.postDelayed(this, 1000);
 			}
 		};
+	}
+
+	private void checkAndPromptBatteryOptimization() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+			if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+				new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+						.setTitle("Unrestricted Battery Required")
+						.setMessage("Data Burner requires 'Unrestricted Battery' usage to keep streaming data when your screen is OFF or when using other apps.\n\nPlease tap 'Grant Permission' and select 'Unrestricted' or 'Allow'.")
+						.setCancelable(false)
+						.setPositiveButton("Grant Permission", (dialog, which) -> {
+							try {
+								Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+								intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+								startActivity(intent);
+							} catch (Exception e) {
+								try {
+									Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+									intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+									startActivity(intent);
+								} catch (Exception ignored) {}
+							}
+						})
+						.setNegativeButton("App Settings", (dialog, which) -> {
+							try {
+								Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+								intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+								startActivity(intent);
+							} catch (Exception ignored) {}
+						})
+						.show();
+			}
+		}
 	}
 
 	private void triggerHapticFeedback(View view) {
@@ -464,6 +504,7 @@ public class MainActivity extends AppCompatActivity {
 	protected void onResume() {
 		super.onResume();
 		handler.post(updateRunnable);
+		checkAndPromptBatteryOptimization();
 	}
 
 	@Override

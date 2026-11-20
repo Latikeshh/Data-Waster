@@ -20,7 +20,9 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.Vibrator;
+import android.net.wifi.WifiManager;
 import android.telephony.TelephonyManager;
 
 import androidx.annotation.RequiresPermission;
@@ -71,6 +73,8 @@ public class BurnService extends Service {
     private int soundId = -1;
     private boolean isSoundLoaded = false;
     private NotificationHelper notificationHelper;
+    private PowerManager.WakeLock wakeLock;
+    private WifiManager.WifiLock wifiLock;
 
     @Override
     public void onCreate() {
@@ -85,6 +89,23 @@ public class BurnService extends Service {
         
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         notificationHelper = new NotificationHelper(this);
+
+        try {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            if (pm != null) {
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DataBurner:ServiceWakeLock");
+                wakeLock.acquire();
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wm != null) {
+                wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "DataBurner:ServiceWifiLock");
+                wifiLock.acquire();
+            }
+        } catch (Exception ignored) {}
+
         initSoundPool();
         startEngine();
     }
@@ -488,6 +509,18 @@ public class BurnService extends Service {
         prefs.edit().putBoolean("service_running", false).apply();
         if (executorService != null) executorService.shutdownNow();
         stopContinuousVibration();
+
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
+        } catch (Exception ignored) {}
+        try {
+            if (wifiLock != null && wifiLock.isHeld()) {
+                wifiLock.release();
+            }
+        } catch (Exception ignored) {}
+
         super.onDestroy();
     }
 

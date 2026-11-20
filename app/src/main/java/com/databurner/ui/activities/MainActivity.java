@@ -244,7 +244,12 @@ public class MainActivity extends AppCompatActivity {
 			Intent startIntent = new Intent(this, BurnService.class);
 			startIntent.setAction(BurnService.ACTION_START);
 			startForegroundService(startIntent);
-			prefs.edit().putBoolean("service_running", true).apply();
+			prefs.edit()
+                    .putBoolean("service_running", true)
+                    .putFloat("speed_mb", 0f)
+                    .putFloat("peak_speed", 0f)
+                    .putFloat("avg_speed", 0f)
+                    .apply();
 			updateUI();
 		});
 
@@ -603,7 +608,7 @@ public class MainActivity extends AppCompatActivity {
 		}
 
 		if (speedGaugeView != null) {
-			speedGaugeView.setSpeed(speedMB);
+			speedGaugeView.setSpeed(speedMB, peakMB);
 		}
 
 		if (speedChartView != null && running) {

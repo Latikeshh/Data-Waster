@@ -56,6 +56,7 @@ public class NotificationHelper {
                     .setSmallIcon(android.R.drawable.stat_notify_error)
                     .setContentTitle(title != null ? title : "⚠️ Data Burner Alert")
                     .setContentText(message != null ? message : "Background stream alert triggered.")
+                    .setContentIntent(getDebugLogActivityPendingIntent())
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setDefaults(NotificationCompat.DEFAULT_ALL)
                     .setAutoCancel(true);
@@ -80,11 +81,32 @@ public class NotificationHelper {
                     .setSmallIcon(IconCompat.createWithBitmap(iconBitmap))
                     .setContentTitle("Burner Service")
                     .setContentText("Initializing...")
+                    .setContentIntent(getMainActivityPendingIntent())
                     .setOngoing(true)
                     .setOnlyAlertOnce(true)
                     .addAction(android.R.drawable.ic_media_pause, "STOP", getStopPendingIntent());
         }
         return notificationBuilder;
+    }
+
+    private PendingIntent getMainActivityPendingIntent() {
+        Intent mainIntent = new Intent(context, com.databurner.ui.activities.MainActivity.class);
+        mainIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        return PendingIntent.getActivity(context, 0, mainIntent, flags);
+    }
+
+    private PendingIntent getDebugLogActivityPendingIntent() {
+        Intent debugIntent = new Intent(context, com.databurner.ui.activities.DebugLogActivity.class);
+        debugIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        return PendingIntent.getActivity(context, 1, debugIntent, flags);
     }
 
     private PendingIntent getStopPendingIntent() {

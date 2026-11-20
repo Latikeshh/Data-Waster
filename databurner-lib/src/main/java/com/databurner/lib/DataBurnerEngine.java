@@ -63,6 +63,13 @@ public class DataBurnerEngine {
         return lastResponseStatus;
     }
 
+    public synchronized void start(Object androidContext) {
+        if (androidContext != null) {
+            AndroidBurnHelper.acquireLocks(androidContext);
+        }
+        start();
+    }
+
     public synchronized void start() {
         if (isRunning) return;
         isRunning = true;
@@ -92,6 +99,8 @@ public class DataBurnerEngine {
         stopRequested = true;
         streamsRunning = false;
         isRunning = false;
+
+        AndroidBurnHelper.releaseLocks();
 
         if (executorService != null) {
             executorService.shutdownNow();

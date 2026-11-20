@@ -138,10 +138,18 @@ engine.setListener(new DataBurnerListener() {
     }
 });
 
-// Start data burning
+// Start data burning (Standard JVM)
 engine.start();
 
-// Stop data burning
+// Start data burning on Android (Automatically acquires CPU WakeLock & WiFi Lock)
+// engine.start(context);
+
+// Check & request Unrestricted Battery Optimization on Android
+// if (!AndroidBurnHelper.isIgnoringBatteryOptimizations(context)) {
+//     AndroidBurnHelper.requestUnrestrictedBattery(context);
+// }
+
+// Stop data burning (Automatically releases locks)
 engine.stop();
 ```
 

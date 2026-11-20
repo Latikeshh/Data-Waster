@@ -320,8 +320,10 @@ public class BurnService extends Service {
                 HttpURLConnection conn = null;
                 InputStream in = null;
                 boolean errorOccurred = false;
+                String targetUrl = null;
                 try {
-                    URL url = new URL(serverManager.getRandomServerUrl());
+                    targetUrl = serverManager.getRandomServerUrl();
+                    URL url = new URL(targetUrl);
                     conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestProperty("Connection", "keep-alive");
                     conn.setRequestProperty("User-Agent", "DataBurner/2.0");
@@ -333,14 +335,18 @@ public class BurnService extends Service {
                     lastResponseStatus = code + " " + conn.getResponseMessage();
 
                     if (code == 200) {
+                        serverManager.markServerSuccess(targetUrl);
                         in = new BufferedInputStream(conn.getInputStream());
                         int read;
                         while (!stopRequested && streamsRunning && (read = in.read(buffer)) != -1) {
                             totalBytesThisSec.addAndGet(read);
                             totalBytesSession.addAndGet(read);
                         }
+                    } else {
+                        serverManager.markServerFailed(targetUrl);
                     }
                 } catch (Exception e) {
+                    serverManager.markServerFailed(targetUrl);
                     errorOccurred = true;
                     lastResponseStatus = "Connecting...";
                     DebugLogger.logException(

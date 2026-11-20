@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -230,19 +231,10 @@ public class MainActivity extends AppCompatActivity {
 			});
 		}
 
-		String[] permissions = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
-				new String[]{Manifest.permission.FOREGROUND_SERVICE, Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE, Manifest.permission.ACCESS_WIFI_STATE, Manifest.permission.POST_NOTIFICATIONS} :
-				new String[]{Manifest.permission.FOREGROUND_SERVICE, Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE, Manifest.permission.ACCESS_WIFI_STATE};
-		ActivityCompat.requestPermissions(this, permissions, 1);
-
 		startBtn.setOnClickListener(v -> {
 			triggerHapticFeedback(v);
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-				android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
-				if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
-					checkAndPromptBatteryOptimization();
-					return;
-				}
+			if (!checkAllRequiredPermissions()) {
+				return;
 			}
 			Intent startIntent = new Intent(this, BurnService.class);
 			startIntent.setAction(BurnService.ACTION_START);
@@ -267,37 +259,81 @@ public class MainActivity extends AppCompatActivity {
 		};
 	}
 
-	private void checkAndPromptBatteryOptimization() {
+	private androidx.appcompat.app.AlertDialog permissionDialog;
+
+	private boolean checkAllRequiredPermissions() {
+		boolean needPhoneState = ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED;
+		boolean needNotification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+				ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
+
+		boolean needBatteryOptimization = false;
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 			android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
-			if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
-				new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-						.setTitle("Unrestricted Battery Required")
-						.setMessage("Data Burner requires 'Unrestricted Battery' usage to keep streaming data when your screen is OFF or when using other apps.\n\nPlease tap 'Grant Permission' and select 'Unrestricted' or 'Allow'.")
-						.setCancelable(false)
-						.setPositiveButton("Grant Permission", (dialog, which) -> {
-							try {
-								Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-								intent.setData(android.net.Uri.parse("package:" + getPackageName()));
-								startActivity(intent);
-							} catch (Exception e) {
-								try {
-									Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-									intent.setData(android.net.Uri.parse("package:" + getPackageName()));
-									startActivity(intent);
-								} catch (Exception ignored) {}
-							}
-						})
-						.setNegativeButton("App Settings", (dialog, which) -> {
+			needBatteryOptimization = (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName()));
+		}
+
+		if (needPhoneState || needNotification || needBatteryOptimization) {
+			showMandatoryPermissionDialog(needPhoneState, needNotification, needBatteryOptimization);
+			return false;
+		}
+		if (permissionDialog != null && permissionDialog.isShowing()) {
+			permissionDialog.dismiss();
+			permissionDialog = null;
+		}
+		return true;
+	}
+
+	private void showMandatoryPermissionDialog(boolean needPhoneState, boolean needNotification, boolean needBatteryOptimization) {
+		if (permissionDialog != null && permissionDialog.isShowing()) {
+			return;
+		}
+
+		StringBuilder msg = new StringBuilder("Data Burner requires the following permissions to function properly:\n\n");
+		if (needPhoneState) {
+			msg.append("• Phone State: Detect 5G/4G cellular network status.\n");
+		}
+		if (needNotification) {
+			msg.append("• Notifications: Show active speed & status bar notifications.\n");
+		}
+		if (needBatteryOptimization) {
+			msg.append("• Unrestricted Battery: Keep streaming data when screen is OFF or using other apps.\n");
+		}
+		msg.append("\nPlease tap 'Grant Permissions' to allow these required features.");
+
+		permissionDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+				.setTitle("Mandatory Permissions Required")
+				.setMessage(msg.toString())
+				.setCancelable(false)
+				.setPositiveButton("Grant Permissions", (dialog, which) -> {
+					permissionDialog = null;
+					if (needPhoneState || needNotification) {
+						java.util.List<String> list = new java.util.ArrayList<>();
+						if (needPhoneState) list.add(Manifest.permission.READ_PHONE_STATE);
+						if (needNotification) list.add(Manifest.permission.POST_NOTIFICATIONS);
+						ActivityCompat.requestPermissions(MainActivity.this, list.toArray(new String[0]), 100);
+					} else if (needBatteryOptimization) {
+						try {
+							Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+							intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+							startActivity(intent);
+						} catch (Exception e) {
 							try {
 								Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
 								intent.setData(android.net.Uri.parse("package:" + getPackageName()));
 								startActivity(intent);
 							} catch (Exception ignored) {}
-						})
-						.show();
-			}
-		}
+						}
+					}
+				})
+				.setNegativeButton("App Settings", (dialog, which) -> {
+					permissionDialog = null;
+					try {
+						Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+						intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+						startActivity(intent);
+					} catch (Exception ignored) {}
+				})
+				.show();
 	}
 
 	private void triggerHapticFeedback(View view) {
@@ -504,7 +540,7 @@ public class MainActivity extends AppCompatActivity {
 	protected void onResume() {
 		super.onResume();
 		handler.post(updateRunnable);
-		checkAndPromptBatteryOptimization();
+		checkAllRequiredPermissions();
 	}
 
 	@Override
@@ -516,12 +552,17 @@ public class MainActivity extends AppCompatActivity {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
+		if (permissionDialog != null && permissionDialog.isShowing()) {
+			permissionDialog.dismiss();
+			permissionDialog = null;
+		}
 		asyncExecutor.shutdown();
 	}
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+		checkAllRequiredPermissions();
 	}
 
 	private void updateUI() {

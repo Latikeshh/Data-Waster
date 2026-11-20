@@ -31,8 +31,10 @@ public class SpeedometerGaugeView extends View {
     private float targetSpeed = 0f;
 
     // Smart Dynamic Max Speed Scaling
-    private float currentMaxSpeed = 50f;
-    private float targetMaxSpeed = 50f;
+    private float currentMaxSpeed = 1.22f;
+    private float targetMaxSpeed = 1.22f;
+    private float lastSessionPeakSpeed = 0f;
+    private boolean scaleInitialized = false;
     private float strokeWidth = 0f;
     private int currentGradientTier = -1;
 
@@ -96,23 +98,30 @@ public class SpeedometerGaugeView extends View {
         textUnitPaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL));
     }
 
-    private float calculateSmartMaxSpeed(float speed) {
-        if (speed <= 0f) return 50f;
-        float requiredMax = speed / 0.68f;
-
-        if (requiredMax <= 20f) return 20f;
-        if (requiredMax <= 50f) return 50f;
-        if (requiredMax <= 100f) return 100f;
-        if (requiredMax <= 200f) return 200f;
-        if (requiredMax <= 500f) return 500f;
-        if (requiredMax <= 1000f) return 1000f;
-
-        return (float) (Math.ceil(requiredMax / 500.0) * 500.0);
-    }
-
-    public void setSpeed(float speedMB) {
+    /**
+     * Updates the gauge using the current speed and the highest speed recorded
+     * during the active burning session. The session peak defines the scale,
+     * while MAX_FILL_CAP keeps the arc from ever reaching 100%.
+     */
+    public void setSpeed(float speedMB, float sessionPeakSpeedMB) {
         this.targetSpeed = Math.max(0f, speedMB);
-        this.targetMaxSpeed = calculateSmartMaxSpeed(targetSpeed);
+
+        float safePeak = Math.max(0f, sessionPeakSpeedMB);
+        float newMaxSpeed = Math.max(1f, safePeak) / MAX_FILL_CAP;
+
+        // A lower peak means a new session has started and its record was reset.
+        if (scaleInitialized && safePeak + 0.001f < lastSessionPeakSpeed) {
+            currentSpeed = targetSpeed;
+            currentMaxSpeed = newMaxSpeed;
+        }
+
+        if (!scaleInitialized) {
+            currentMaxSpeed = newMaxSpeed;
+            scaleInitialized = true;
+        }
+
+        this.targetMaxSpeed = newMaxSpeed;
+        this.lastSessionPeakSpeed = safePeak;
         postInvalidateOnAnimation();
     }
 

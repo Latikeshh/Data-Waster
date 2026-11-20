@@ -26,7 +26,7 @@ public class DebugLogActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_debug_log);
 
-        DashboardController.applyWindowInsets(findViewById(R.id.appBarLayout), R.id.appBarLayout, 0, 0);
+        DashboardController.applyWindowInsets(findViewById(R.id.debugLogMain), R.id.appBarLayout, 0, R.id.debugLogScrollView);
 
         MaterialToolbar topAppBar = findViewById(R.id.topAppBar);
         if (topAppBar != null) {

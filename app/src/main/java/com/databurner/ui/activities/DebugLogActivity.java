@@ -69,9 +69,12 @@ public class DebugLogActivity extends AppCompatActivity {
             StringBuilder sb = new StringBuilder();
             for (int i = logs.length() - 1; i >= 0; i--) { // Reverse order (newest first)
                 JSONObject obj = logs.getJSONObject(i);
-                sb.append("========================================\n");
+                String eventType = obj.optString("event_type", "INFO");
+                String badge = getBadgeForEventType(eventType);
+
+                sb.append("────────────────────────────────────────\n");
                 sb.append("Time     : ").append(obj.optString("timestamp", "N/A")).append("\n");
-                sb.append("Event    : ").append(obj.optString("event_type", "INFO")).append("\n");
+                sb.append("Event    : ").append(badge).append(" ").append(eventType).append("\n");
                 sb.append("Duration : ").append(formatDuration(obj.optLong("session_seconds", 0))).append("\n");
                 sb.append("Data MB  : ").append(obj.optString("total_mb", "0.00")).append(" MB\n");
                 sb.append("Threads  : ").append(obj.optInt("active_threads", 0)).append("\n");
@@ -89,6 +92,15 @@ public class DebugLogActivity extends AppCompatActivity {
         } catch (Exception e) {
             logsContainerText.setText("Error reading logs: " + e.getMessage());
         }
+    }
+
+    private String getBadgeForEventType(String eventType) {
+        if ("AUTO_REPAIR".equals(eventType)) return "🛠️";
+        if ("STREAM_ERROR_REPAIRING".equals(eventType)) return "⚠️";
+        if ("UNCAUGHT_CRASH_RECOVERED".equals(eventType)) return "💥";
+        if ("SERVICE_STARTED".equals(eventType)) return "🚀";
+        if ("SERVICE_STOPPED".equals(eventType)) return "🛑";
+        return "ℹ️";
     }
 
     private String formatDuration(long sec) {

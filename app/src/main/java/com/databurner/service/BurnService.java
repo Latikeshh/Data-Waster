@@ -600,6 +600,7 @@ public class BurnService extends Service {
                 prefs.edit()
                     .putLong("used_bytes", 0L)
                     .putLong("total_seconds", 0L)
+                    .putFloat("speed_mb", 0f)
                     .putFloat("peak_speed", 0f)
                     .putFloat("avg_speed", 0f)
                     .apply();
@@ -613,6 +614,7 @@ public class BurnService extends Service {
                 prefs.edit()
                     .putLong("used_bytes", 0L)
                     .putLong("total_seconds", 0L)
+                    .putFloat("speed_mb", 0f)
                     .putFloat("peak_speed", 0f)
                     .putFloat("avg_speed", 0f)
                     .apply();
@@ -620,7 +622,12 @@ public class BurnService extends Service {
             } else if (ACTION_NEW_SESSION.equals(action)) {
                 totalActiveSeconds.set(0);
                 totalBytesSession.set(0);
-                prefs.edit().putLong("total_seconds", 0L).apply();
+                prefs.edit()
+                    .putLong("total_seconds", 0L)
+                    .putFloat("speed_mb", 0f)
+                    .putFloat("peak_speed", 0f)
+                    .putFloat("avg_speed", 0f)
+                    .apply();
                 updateNotificationNow();
             }
         }

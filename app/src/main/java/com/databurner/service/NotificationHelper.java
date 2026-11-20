@@ -20,7 +20,9 @@ import java.util.Locale;
 public class NotificationHelper {
 
     private static final String CHANNEL_ID = "burn_channel";
+    private static final String ALERT_CHANNEL_ID = "burn_error_alert_channel";
     private static final int NOTIFICATION_ID = 1;
+    private static final int ALERT_NOTIFICATION_ID = 200;
 
     private final Context context;
     private final NotificationManager notificationManager;
@@ -36,10 +38,32 @@ public class NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID, "Data Burner Service", NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel alertChannel = new NotificationChannel(
+                    ALERT_CHANNEL_ID, "Data Burner Alerts & Errors", NotificationManager.IMPORTANCE_HIGH);
+            alertChannel.setDescription("High-priority status bar alerts for background stream errors and auto-repairs");
+            alertChannel.enableVibration(true);
+
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(channel);
+                notificationManager.createNotificationChannel(alertChannel);
             }
         }
+    }
+
+    public void sendErrorAlertNotification(String title, String message) {
+        try {
+            NotificationCompat.Builder alertBuilder = new NotificationCompat.Builder(context, ALERT_CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.stat_notify_error)
+                    .setContentTitle(title != null ? title : "⚠️ Data Burner Alert")
+                    .setContentText(message != null ? message : "Background stream alert triggered.")
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setDefaults(NotificationCompat.DEFAULT_ALL)
+                    .setAutoCancel(true);
+
+            if (notificationManager != null) {
+                notificationManager.notify(ALERT_NOTIFICATION_ID, alertBuilder.build());
+            }
+        } catch (Exception ignored) {}
     }
 
     public NotificationCompat.Builder getBaseBuilder() {

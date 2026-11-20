@@ -250,6 +250,12 @@ public class BurnService extends Service {
                                         prefs.getLong("used_bytes", 0L) + totalBytesSession.get(),
                                         0
                                 );
+                                if (notificationHelper != null) {
+                                    notificationHelper.sendErrorAlertNotification(
+                                            "🛠️ Data Burner Auto-Repair",
+                                            "Stalled background streams detected. Auto-repairing worker threads..."
+                                    );
+                                }
                                 stopStreams();
                                 try { Thread.sleep(500); } catch (InterruptedException ignored) {}
                                 startStreams();

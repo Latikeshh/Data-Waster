@@ -26,7 +26,8 @@ public class ServerManager {
 
     public static final List<String> DEFAULT_STREAM_SERVERS = new ArrayList<>();
     private static final List<String> SEED_WEB_PAGES = new ArrayList<>();
-    private static final Pattern BINARY_URL_PATTERN = Pattern.compile("https?://[^\"]+?\\.(?:zip|iso|dmg|exe|bin|apk)");
+    private static final Pattern LINK_HREF_PATTERN = Pattern.compile("href=[\"']?([^\"' >]+?\\.(?:zip|iso|dmg|exe|bin|apk))[\"']?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern RAW_URL_PATTERN = Pattern.compile("https?://[^\"]+?\\.(?:zip|iso|dmg|exe|bin|apk)", Pattern.CASE_INSENSITIVE);
     private static final SimpleDateFormat TIME_12HR_FORMAT = new SimpleDateFormat("hh:mm:ss a", Locale.US);
     private static final Random random = new Random();
 
@@ -169,12 +170,32 @@ public class ServerManager {
                         }
                         reader.close();
 
-                        Matcher matcher = BINARY_URL_PATTERN.matcher(html.toString());
+                        String htmlStr = html.toString();
                         int extractedCount = 0;
-                        while (matcher.find() && extractedCount < 3) {
-                            String extractedUrl = matcher.group();
-                            if (validateBinaryUrl(extractedUrl)) {
-                                addExtractedServer(extractedUrl);
+
+                        // 1. Scrape relative & absolute href links
+                        Matcher hrefMatcher = LINK_HREF_PATTERN.matcher(htmlStr);
+                        while (hrefMatcher.find() && extractedCount < 5) {
+                            String href = hrefMatcher.group(1);
+                            try {
+                                if (href != null) {
+                                    String absoluteUrl = (href.startsWith("http://") || href.startsWith("https://")) ?
+                                            href : new URL(new URL(pageUrl), href).toString();
+
+                                    if (validateBinaryUrl(absoluteUrl)) {
+                                        addExtractedServer(absoluteUrl);
+                                        extractedCount++;
+                                    }
+                                }
+                            } catch (Exception ignored) {}
+                        }
+
+                        // 2. Scrape raw absolute URLs
+                        Matcher rawMatcher = RAW_URL_PATTERN.matcher(htmlStr);
+                        while (rawMatcher.find() && extractedCount < 8) {
+                            String rawUrl = rawMatcher.group();
+                            if (validateBinaryUrl(rawUrl)) {
+                                addExtractedServer(rawUrl);
                                 extractedCount++;
                             }
                         }

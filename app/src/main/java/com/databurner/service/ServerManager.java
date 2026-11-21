@@ -20,13 +20,14 @@ import java.util.regex.Pattern;
 /**
  * High-performance Server Manager for Data Burner.
  * Features a Smart Dynamic Web Link Extractor that parses live web pages,
- * friendly name labelling, current-session tracking, 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
+ * handles relative/absolute URLs, friendly name labelling, current-session tracking, 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
  */
 public class ServerManager {
 
     private static final List<String> DEFAULT_STREAM_SERVERS = new ArrayList<>();
     private static final List<String> SEED_WEB_PAGES = new ArrayList<>();
-    private static final Pattern BINARY_URL_PATTERN = Pattern.compile("https?://[^\"]+?\\.(?:zip|iso|dmg|exe|bin|apk)");
+    private static final Pattern LINK_HREF_PATTERN = Pattern.compile("href=[\"']?([^\"' >]+?\\.(?:zip|iso|dmg|exe|bin|apk))[\"']?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern RAW_URL_PATTERN = Pattern.compile("https?://[^\"]+?\\.(?:zip|iso|dmg|exe|bin|apk)", Pattern.CASE_INSENSITIVE);
     private static final SimpleDateFormat TIME_12HR_FORMAT = new SimpleDateFormat("hh:mm:ss a", Locale.US);
     private static final Random random = new Random();
 
@@ -53,7 +54,8 @@ public class ServerManager {
 
         // Seed Web Pages to Scrape Dynamically
         SEED_WEB_PAGES.add("https://developer.android.com/studio");
-        SEED_WEB_PAGES.add("https://releases.ubuntu.com/");
+        SEED_WEB_PAGES.add("https://releases.ubuntu.com/24.04/");
+        SEED_WEB_PAGES.add("https://releases.ubuntu.com/22.04/");
         SEED_WEB_PAGES.add("https://www.python.org/downloads/");
         SEED_WEB_PAGES.add("https://api.github.com/repos/Latikeshh/Data-Waster/releases/latest");
     }
@@ -153,18 +155,38 @@ public class ServerManager {
                         StringBuilder html = new StringBuilder();
                         String line;
                         int linesRead = 0;
-                        while ((line = reader.readLine()) != null && linesRead < 300) {
+                        while ((line = reader.readLine()) != null && linesRead < 400) {
                             html.append(line).append("\n");
                             linesRead++;
                         }
                         reader.close();
 
-                        Matcher matcher = BINARY_URL_PATTERN.matcher(html.toString());
+                        String htmlStr = html.toString();
                         int extractedCount = 0;
-                        while (matcher.find() && extractedCount < 3) {
-                            String extractedUrl = matcher.group();
-                            if (validateBinaryUrl(extractedUrl)) {
-                                addExtractedServer(extractedUrl);
+
+                        // 1. Scrape relative & absolute href links
+                        Matcher hrefMatcher = LINK_HREF_PATTERN.matcher(htmlStr);
+                        while (hrefMatcher.find() && extractedCount < 5) {
+                            String href = hrefMatcher.group(1);
+                            try {
+                                if (href != null) {
+                                    String absoluteUrl = (href.startsWith("http://") || href.startsWith("https://")) ?
+                                            href : new URL(new URL(pageUrl), href).toString();
+
+                                    if (validateBinaryUrl(absoluteUrl)) {
+                                        addExtractedServer(absoluteUrl);
+                                        extractedCount++;
+                                    }
+                                }
+                            } catch (Exception ignored) {}
+                        }
+
+                        // 2. Scrape raw absolute URLs
+                        Matcher rawMatcher = RAW_URL_PATTERN.matcher(htmlStr);
+                        while (rawMatcher.find() && extractedCount < 8) {
+                            String rawUrl = rawMatcher.group();
+                            if (validateBinaryUrl(rawUrl)) {
+                                addExtractedServer(rawUrl);
                                 extractedCount++;
                             }
                         }

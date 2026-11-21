@@ -352,6 +352,7 @@ public class BurnService extends Service {
                         while (!stopRequested && streamsRunning && (read = in.read(buffer)) != -1) {
                             totalBytesThisSec.addAndGet(read);
                             totalBytesSession.addAndGet(read);
+                            serverManager.addBytesForUrl(targetUrl, read);
                             streamReadBytes += read;
 
                             // 90% Chunk Limit: Rotate mirror URL once 90% of file is read to avoid HTTP 429 rate limits

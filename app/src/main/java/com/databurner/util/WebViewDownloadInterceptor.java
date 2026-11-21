@@ -8,10 +8,12 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Off-screen Headless WebView Interceptor.
  * Loads dynamic web pages (e.g. developer.android.com/studio), executes JavaScript,
- * simulates download button interactions, and intercepts direct CDN download URLs
+ * simulates download button interactions, and intercepts multiple direct CDN download URLs
  * via DownloadListener.onDownloadStart in real-time.
  */
 public class WebViewDownloadInterceptor {
@@ -26,6 +28,8 @@ public class WebViewDownloadInterceptor {
         new Handler(Looper.getMainLooper()).post(() -> {
             try {
                 final WebView webView = new WebView(context.getApplicationContext());
+                final AtomicInteger extractedCount = new AtomicInteger(0);
+
                 WebSettings settings = webView.getSettings();
                 settings.setJavaScriptEnabled(true);
                 settings.setDomStorageEnabled(true);
@@ -43,7 +47,8 @@ public class WebViewDownloadInterceptor {
                     }
                 };
 
-                mainHandler.postDelayed(cleanup, 12000); // 12-second watchdog timeout
+                // 10-second watchdog cleanup
+                mainHandler.postDelayed(cleanup, 10000);
 
                 webView.setDownloadListener(new DownloadListener() {
                     @Override
@@ -54,9 +59,12 @@ public class WebViewDownloadInterceptor {
                                     listener.onExtracted(url);
                                 }
                             }
-                            webView.stopLoading();
-                            mainHandler.removeCallbacks(cleanup);
-                            webView.destroy();
+                            // Collect up to 5 distinct download URLs per page before destroying WebView
+                            if (extractedCount.incrementAndGet() >= 5) {
+                                webView.stopLoading();
+                                mainHandler.removeCallbacks(cleanup);
+                                webView.destroy();
+                            }
                         } catch (Exception ignored) {}
                     }
                 });
@@ -66,13 +74,14 @@ public class WebViewDownloadInterceptor {
                     public void onPageFinished(WebView view, String url) {
                         super.onPageFinished(view, url);
                         try {
+                            // JavaScript loop: Click and trigger all matching binary download links on page
                             String jsScript = "javascript:(function() {" +
                                     "   var links = document.getElementsByTagName('a');" +
-                                    "   for (var i = 0; i < links.length; i++) {" +
+                                    "   var count = 0;" +
+                                    "   for (var i = 0; i < links.length && count < 5; i++) {" +
                                     "       var href = links[i].href;" +
                                     "       if (href && href.match(/\\.(zip|iso|dmg|exe|bin|apk)$/i)) {" +
-                                    "           links[i].click();" +
-                                    "           break;" +
+                                    "           try { links[i].click(); count++; } catch(e){}" +
                                     "       }" +
                                     "   }" +
                                     "})()";

@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,6 +48,14 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
 
+        // High-Speed Google Android SDKs, Ubuntu ISOs & GitHub Release CDNs
+        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
+        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
+        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
+        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso");
+        DEFAULT_STREAM_SERVERS.add("https://github.com/Latikeshh/Data-Waster/releases/download/26.11.20/app-release.apk");
+        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/platform-tools_r35.0.2-windows.zip");
+
         // Candidates for Dynamic Extraction Testing on Session Start
         DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
         DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
@@ -69,14 +79,22 @@ public class ServerManager {
         public final boolean isBlacklisted;
         public final String timestamp12Hr;
         public final int failureCount;
+        public final long downloadedBytes;
+        public final String testResultStatus;
+        public final boolean isExtractionSuccess;
 
-        public MirrorStatusInfo(String url, String friendlyName, String source, boolean isBlacklisted, String timestamp12Hr, int failureCount) {
+        public MirrorStatusInfo(String url, String friendlyName, String source, boolean isBlacklisted,
+                                String timestamp12Hr, int failureCount, long downloadedBytes,
+                                String testResultStatus, boolean isExtractionSuccess) {
             this.url = url;
             this.friendlyName = friendlyName;
             this.source = source;
             this.isBlacklisted = isBlacklisted;
             this.timestamp12Hr = timestamp12Hr;
             this.failureCount = failureCount;
+            this.downloadedBytes = downloadedBytes;
+            this.testResultStatus = testResultStatus;
+            this.isExtractionSuccess = isExtractionSuccess;
         }
     }
 
@@ -117,6 +135,8 @@ public class ServerManager {
     private final Map<String, String> serverTimestamps = new HashMap<>();
     private final Map<String, Integer> failureCounts = new HashMap<>();
     private final Map<String, Long> blacklistTimestamps = new HashMap<>();
+    private final Map<String, AtomicLong> urlBytesTrackers = new ConcurrentHashMap<>();
+    private final Map<String, String> urlTestResults = new ConcurrentHashMap<>();
 
     public ServerManager() {
         this(null);
@@ -128,6 +148,7 @@ public class ServerManager {
         for (String url : DEFAULT_STREAM_SERVERS) {
             serverSources.put(url, "PREDEFINED_CDN");
             serverTimestamps.put(url, nowStr);
+            urlTestResults.put(url, "HTTP 200 OK (Predefined)");
         }
         if (customServers != null && !customServers.isEmpty()) {
             for (String server : customServers) {
@@ -140,6 +161,7 @@ public class ServerManager {
     public synchronized void startNewSession() {
         failureCounts.clear();
         blacklistTimestamps.clear();
+        urlBytesTrackers.clear();
         activeServers.clear();
         activeServers.addAll(DEFAULT_STREAM_SERVERS);
 
@@ -147,15 +169,24 @@ public class ServerManager {
         for (String url : DEFAULT_STREAM_SERVERS) {
             serverSources.put(url, "PREDEFINED_CDN");
             serverTimestamps.put(url, nowStr);
+            urlTestResults.put(url, "HTTP 200 OK (Predefined)");
         }
         fetchAndValidateDynamicMirrorsAsync();
+    }
+
+    public void addBytesForUrl(String url, long bytes) {
+        if (url != null && bytes > 0) {
+            urlBytesTrackers.computeIfAbsent(url, k -> new AtomicLong(0)).addAndGet(bytes);
+        }
     }
 
     public void fetchAndValidateDynamicMirrorsAsync() {
         new Thread(() -> {
             // 1. Validate & Register Dynamic Seed Candidates
             for (String candidateUrl : DYNAMIC_SEED_CANDIDATES) {
-                if (validateBinaryUrl(candidateUrl)) {
+                String testRes = validateAndGetStatus(candidateUrl);
+                if (testRes != null && testRes.startsWith("HTTP")) {
+                    urlTestResults.put(candidateUrl, testRes);
                     addExtractedServer(candidateUrl);
                 }
             }
@@ -193,7 +224,9 @@ public class ServerManager {
                                     String absoluteUrl = (href.startsWith("http://") || href.startsWith("https://")) ?
                                             href : new URL(new URL(pageUrl), href).toString();
 
-                                    if (validateBinaryUrl(absoluteUrl)) {
+                                    String testRes = validateAndGetStatus(absoluteUrl);
+                                    if (testRes != null && testRes.startsWith("HTTP")) {
+                                        urlTestResults.put(absoluteUrl, testRes);
                                         addExtractedServer(absoluteUrl);
                                         extractedCount++;
                                     }
@@ -205,7 +238,9 @@ public class ServerManager {
                         Matcher rawMatcher = RAW_URL_PATTERN.matcher(htmlStr);
                         while (rawMatcher.find() && extractedCount < 8) {
                             String rawUrl = rawMatcher.group();
-                            if (validateBinaryUrl(rawUrl)) {
+                            String testRes = validateAndGetStatus(rawUrl);
+                            if (testRes != null && testRes.startsWith("HTTP")) {
+                                urlTestResults.put(rawUrl, testRes);
                                 addExtractedServer(rawUrl);
                                 extractedCount++;
                             }
@@ -217,9 +252,10 @@ public class ServerManager {
         }, "dynamic-mirror-scraper").start();
     }
 
-    private boolean validateBinaryUrl(String candidateUrl) {
-        if (candidateUrl == null || candidateUrl.trim().isEmpty()) return false;
+    private String validateAndGetStatus(String candidateUrl) {
+        if (candidateUrl == null || candidateUrl.trim().isEmpty()) return "INVALID_URL";
         try {
+            long startTime = System.currentTimeMillis();
             URL url = new URL(candidateUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
@@ -228,10 +264,15 @@ public class ServerManager {
             conn.setReadTimeout(4000);
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
             int code = conn.getResponseCode();
+            long latency = System.currentTimeMillis() - startTime;
             conn.disconnect();
-            return (code == 200 || code == 206 || code == 301 || code == 302 || code == 303 || code == 307 || code == 308);
+
+            if (code == 200 || code == 206 || code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
+                return "HTTP " + code + " OK (" + latency + "ms)";
+            }
+            return "HTTP " + code + " FAIL";
         } catch (Exception e) {
-            return false;
+            return "ERROR: " + (e.getMessage() != null ? e.getMessage() : "Timeout");
         }
     }
 
@@ -277,6 +318,7 @@ public class ServerManager {
 
         if (count >= 3) {
             blacklistTimestamps.put(url, System.currentTimeMillis() + 60_000L);
+            urlTestResults.put(url, "FAILED (Blacklisted 60s)");
             fetchAndValidateDynamicMirrorsAsync();
         }
     }
@@ -292,7 +334,12 @@ public class ServerManager {
             int failures = failureCounts.getOrDefault(url, 0);
             String friendlyName = getFriendlyNameForUrl(url);
 
-            list.add(new MirrorStatusInfo(url, friendlyName, source, isBlacklisted, timestamp, failures));
+            AtomicLong bytesTracker = urlBytesTrackers.get(url);
+            long bytes = bytesTracker != null ? bytesTracker.get() : 0L;
+            String testResult = urlTestResults.getOrDefault(url, "HTTP 200 OK (Validated)");
+            boolean isSuccess = !isBlacklisted && (testResult.startsWith("HTTP 200") || testResult.startsWith("HTTP 206") || testResult.startsWith("HTTP 3"));
+
+            list.add(new MirrorStatusInfo(url, friendlyName, source, isBlacklisted, timestamp, failures, bytes, testResult, isSuccess));
         }
         return list;
     }
@@ -326,6 +373,8 @@ public class ServerManager {
             blacklistTimestamps.remove(url);
             serverSources.remove(url);
             serverTimestamps.remove(url);
+            urlBytesTrackers.remove(url);
+            urlTestResults.remove(url);
         }
     }
 

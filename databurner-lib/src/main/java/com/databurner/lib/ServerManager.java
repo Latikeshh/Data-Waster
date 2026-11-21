@@ -38,6 +38,14 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
 
+        // Dynamic High-Speed Google Android SDKs & Official Open-Source CDNs
+        DYNAMIC_CANDIDATE_URLS.add("https://dl.google.com/android/repository/platform-tools_r35.0.2-windows.zip");
+        DYNAMIC_CANDIDATE_URLS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
+        DYNAMIC_CANDIDATE_URLS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
+        DYNAMIC_CANDIDATE_URLS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
+        DYNAMIC_CANDIDATE_URLS.add("https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso");
+        DYNAMIC_CANDIDATE_URLS.add("https://github.com/Latikeshh/Data-Waster/releases/download/26.11.20/app-release.apk");
+
         // Seed Web Pages to Scrape Dynamically
         SEED_WEB_PAGES.add("https://developer.android.com/studio");
         SEED_WEB_PAGES.add("https://releases.ubuntu.com/");

@@ -20,12 +20,14 @@ import java.util.regex.Pattern;
 /**
  * High-performance Server Manager for Data Burner.
  * Features a Smart Dynamic Web Link Extractor that parses live web pages,
- * handles relative/absolute URLs, friendly name labelling, current-session tracking, 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
+ * handles relative/absolute URLs, Range validation, friendly name labelling, current-session tracking,
+ * 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
  */
 public class ServerManager {
 
     private static final List<String> DEFAULT_STREAM_SERVERS = new ArrayList<>();
     private static final List<String> SEED_WEB_PAGES = new ArrayList<>();
+    private static final List<String> DYNAMIC_SEED_CANDIDATES = new ArrayList<>();
     private static final Pattern LINK_HREF_PATTERN = Pattern.compile("href=[\"']?([^\"' >]+?\\.(?:zip|iso|dmg|exe|bin|apk))[\"']?", Pattern.CASE_INSENSITIVE);
     private static final Pattern RAW_URL_PATTERN = Pattern.compile("https?://[^\"]+?\\.(?:zip|iso|dmg|exe|bin|apk)", Pattern.CASE_INSENSITIVE);
     private static final SimpleDateFormat TIME_12HR_FORMAT = new SimpleDateFormat("hh:mm:ss a", Locale.US);
@@ -44,13 +46,13 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
 
-        // High-Speed Google Android SDKs, Ubuntu ISOs & GitHub Release CDNs
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
-        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
-        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso");
-        DEFAULT_STREAM_SERVERS.add("https://github.com/Latikeshh/Data-Waster/releases/download/26.11.20/app-release.apk");
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/platform-tools_r35.0.2-windows.zip");
+        // Candidates for Dynamic Extraction Testing on Session Start
+        DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
+        DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
+        DYNAMIC_SEED_CANDIDATES.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
+        DYNAMIC_SEED_CANDIDATES.add("https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso");
+        DYNAMIC_SEED_CANDIDATES.add("https://github.com/Latikeshh/Data-Waster/releases/download/26.11.20/app-release.apk");
+        DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/platform-tools_r35.0.2-windows.zip");
 
         // Seed Web Pages to Scrape Dynamically
         SEED_WEB_PAGES.add("https://developer.android.com/studio");
@@ -141,11 +143,19 @@ public class ServerManager {
 
     public void fetchAndValidateDynamicMirrorsAsync() {
         new Thread(() -> {
+            // 1. Validate & Register Dynamic Seed Candidates
+            for (String candidateUrl : DYNAMIC_SEED_CANDIDATES) {
+                if (validateBinaryUrl(candidateUrl)) {
+                    addExtractedServer(candidateUrl);
+                }
+            }
+
+            // 2. Web Scrape Seed Web Pages for Live Binary Links
             for (String pageUrl : SEED_WEB_PAGES) {
                 try {
                     URL url = new URL(pageUrl);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) DataBurner/2.0");
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
                     conn.setConnectTimeout(4000);
                     conn.setReadTimeout(4000);
 
@@ -164,7 +174,7 @@ public class ServerManager {
                         String htmlStr = html.toString();
                         int extractedCount = 0;
 
-                        // 1. Scrape relative & absolute href links
+                        // Scrape relative & absolute href links
                         Matcher hrefMatcher = LINK_HREF_PATTERN.matcher(htmlStr);
                         while (hrefMatcher.find() && extractedCount < 5) {
                             String href = hrefMatcher.group(1);
@@ -181,7 +191,7 @@ public class ServerManager {
                             } catch (Exception ignored) {}
                         }
 
-                        // 2. Scrape raw absolute URLs
+                        // Scrape raw absolute URLs
                         Matcher rawMatcher = RAW_URL_PATTERN.matcher(htmlStr);
                         while (rawMatcher.find() && extractedCount < 8) {
                             String rawUrl = rawMatcher.group();
@@ -198,16 +208,18 @@ public class ServerManager {
     }
 
     private boolean validateBinaryUrl(String candidateUrl) {
+        if (candidateUrl == null || candidateUrl.trim().isEmpty()) return false;
         try {
             URL url = new URL(candidateUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("HEAD");
-            conn.setConnectTimeout(3000);
-            conn.setReadTimeout(3000);
-            conn.setRequestProperty("User-Agent", "DataBurner/2.0");
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Range", "bytes=0-10");
+            conn.setConnectTimeout(4000);
+            conn.setReadTimeout(4000);
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
             int code = conn.getResponseCode();
             conn.disconnect();
-            return (code == 200 || code == 301 || code == 302);
+            return (code == 200 || code == 206 || code == 301 || code == 302 || code == 303 || code == 307 || code == 308);
         } catch (Exception e) {
             return false;
         }

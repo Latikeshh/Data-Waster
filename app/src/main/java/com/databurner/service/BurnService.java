@@ -616,6 +616,7 @@ public class BurnService extends Service {
                     .putFloat("peak_speed", 0f)
                     .putFloat("avg_speed", 0f)
                     .apply();
+                serverManager.startNewSession(getApplicationContext());
                 updateNotificationNow();
                 startBurning();
             } else if (ACTION_STOP_SERVICE.equals(action)) {

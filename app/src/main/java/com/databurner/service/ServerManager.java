@@ -150,7 +150,7 @@ public class ServerManager {
         fetchAndValidateDynamicMirrorsAsync();
     }
 
-    public synchronized void startNewSession() {
+    public synchronized void startNewSession(Context context) {
         failureCounts.clear();
         blacklistTimestamps.clear();
         urlBytesTrackers.clear();
@@ -164,6 +164,13 @@ public class ServerManager {
             urlTestResults.put(url, "HTTP 200 OK (Predefined)");
         }
         fetchAndValidateDynamicMirrorsAsync();
+        if (context != null) {
+            startWebViewExtraction(context);
+        }
+    }
+
+    public synchronized void startNewSession() {
+        startNewSession(null);
     }
 
     public void addBytesForUrl(String url, long bytes) {

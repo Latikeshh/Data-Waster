@@ -17,7 +17,8 @@
 - **5G / Cellular Guard:** Automatically pauses or alerts when non-5G / cellular networks are disconnected to protect your main data plan.
 - **Quota Management:** Set data quota limits (in MB or GB) with auto-stop when targets are met.
 - **Real-Time Telemetry & HUD:** Live speedometer gauge, real-time speed chart, active thread telemetry, peak speed, and average speed analytics.
-- **Custom Mirrors & CDNs:** Pre-configured with high-speed 10G CDN binaries (Hetzner, Belwue, Otenet, Tele2) + full support for custom mirror URLs.
+- **Custom Mirrors & CDNs:** Pre-configured with high-speed 10G CDN binaries (Hetzner, Leaseweb, Cloudflare, OVH, Linode, Selectel) + full support for custom mirror URLs.
+- **Dynamic Mirror Discovery Engine:** Automatically discovers, validates, and streams from official high-speed Google SDK repositories (`dl.google.com`), official Linux ISO mirrors, GitHub releases, and 10G+ CDNs with smart failover and automatic server blacklisting.
 - **Foreground Service & Quick Tile:** Android Foreground Service with continuous notification and Android Quick Settings Tile integration.
 - **Java Library (`databurner-lib`):** Standalone, dependency-free Java/Android library to integrate data burning & stress testing into your own applications!
 

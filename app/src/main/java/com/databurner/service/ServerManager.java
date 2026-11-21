@@ -1,5 +1,7 @@
 package com.databurner.service;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,11 +11,13 @@ import java.util.Random;
 
 /**
  * High-performance Server Manager for Data Burner.
- * Manages ultra-high-speed 10G+ CDN binary stream mirrors with even thread distribution, smart failover, and auto-blacklisting.
+ * Manages ultra-high-speed 10G+ CDN binary stream mirrors with dynamic auto-fetching (Google SDKs, Ubuntu CDNs),
+ * even thread distribution, smart failover, and auto-blacklisting.
  */
 public class ServerManager {
 
     private static final List<String> DEFAULT_STREAM_SERVERS = new ArrayList<>();
+    private static final List<String> DYNAMIC_CANDIDATE_URLS = new ArrayList<>();
     private static final Random random = new Random();
 
     static {
@@ -28,6 +32,14 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.tokyo2.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
+
+        // Dynamic High-Speed Google Android SDKs & Official Open-Source CDNs
+        DYNAMIC_CANDIDATE_URLS.add("https://dl.google.com/android/repository/platform-tools_r35.0.2-windows.zip");
+        DYNAMIC_CANDIDATE_URLS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
+        DYNAMIC_CANDIDATE_URLS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
+        DYNAMIC_CANDIDATE_URLS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
+        DYNAMIC_CANDIDATE_URLS.add("https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso");
+        DYNAMIC_CANDIDATE_URLS.add("https://github.com/Latikeshh/Data-Waster/releases/download/26.11.20/app-release.apk");
     }
 
     private final List<String> activeServers = new ArrayList<>(DEFAULT_STREAM_SERVERS);
@@ -35,6 +47,32 @@ public class ServerManager {
     private final Map<String, Long> blacklistTimestamps = new HashMap<>();
 
     public ServerManager() {
+        fetchAndValidateDynamicMirrorsAsync();
+    }
+
+    /**
+     * Asynchronously tests candidate dynamic URLs (Google SDKs, Ubuntu CDNs) via HEAD requests
+     * and automatically registers working HTTP 200/302 endpoints into active stream pool.
+     */
+    public void fetchAndValidateDynamicMirrorsAsync() {
+        new Thread(() -> {
+            for (String candidateUrl : DYNAMIC_CANDIDATE_URLS) {
+                try {
+                    URL url = new URL(candidateUrl);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("HEAD");
+                    conn.setConnectTimeout(3000);
+                    conn.setReadTimeout(3000);
+                    conn.setRequestProperty("User-Agent", "DataBurner/2.0");
+                    int code = conn.getResponseCode();
+                    conn.disconnect();
+
+                    if (code == 200 || code == 301 || code == 302) {
+                        addCustomServer(candidateUrl);
+                    }
+                } catch (Exception ignored) {}
+            }
+        }, "dynamic-mirror-fetcher").start();
     }
 
     /**
@@ -109,6 +147,7 @@ public class ServerManager {
         activeServers.addAll(DEFAULT_STREAM_SERVERS);
         failureCounts.clear();
         blacklistTimestamps.clear();
+        fetchAndValidateDynamicMirrorsAsync();
     }
 
     public synchronized int getServerCount() {

@@ -40,7 +40,7 @@ public class SpeedometerGaugeView extends View {
 
     private static final float START_ANGLE = 150f;
     private static final float SWEEP_ANGLE = 240f;
-    private static final float MAX_FILL_CAP = 0.82f;
+    private static final float MAX_FILL_CAP = 1.0f;
 
     public SpeedometerGaugeView(Context context) {
         super(context);

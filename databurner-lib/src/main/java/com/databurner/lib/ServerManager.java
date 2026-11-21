@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 /**
  * High-performance Server Manager for Data Burner Library.
  * Features a Smart Dynamic Web Link Extractor that parses live web pages,
- * handles relative/absolute URLs, Range validation, friendly name labelling, current-session tracking,
+ * handles relative/absolute URLs, Range validation, friendly name labeling, current-session tracking,
  * 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
  */
 public class ServerManager {

@@ -556,6 +556,7 @@ public class MainActivity extends AppCompatActivity {
 		super.onResume();
 		handler.post(updateRunnable);
 		checkAllRequiredPermissions();
+		serverManager.startWebViewExtraction(this);
 	}
 
 	@Override

@@ -1,6 +1,10 @@
 package com.databurner.service;
 
+import android.app.Activity;
 import android.content.Context;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -216,7 +220,11 @@ public class ServerManager {
     }
 
     public void startWebViewExtraction(Context context) {
-        if (context == null) return;
+        // Solution 3: Decouple WebView extraction strictly to Foreground UI (Activity Context)
+        if (context == null || !(context instanceof Activity)) {
+            // Guard against running headless WebViews from background Service contexts
+            return;
+        }
         for (String seedPage : SEED_WEB_PAGES) {
             com.databurner.util.WebViewDownloadInterceptor.interceptPageDownloads(context, seedPage, url -> {
                 if (url != null) {
@@ -229,6 +237,10 @@ public class ServerManager {
 
     public void fetchAndValidateDynamicMirrorsAsync() {
         new Thread(() -> {
+            // Solution 1: Direct Native REST API Extraction (No WebView Required)
+            fetchGitHubReleaseAssetsApi();
+            fetchUbuntuReleaseManifestApi();
+
             // 1. Validate & Register Dynamic Seed Candidates
             for (String candidateUrl : DYNAMIC_SEED_CANDIDATES) {
                 String testRes = validateAndGetStatus(candidateUrl);
@@ -238,7 +250,7 @@ public class ServerManager {
                 }
             }
 
-            // 2. Web Scrape Seed Web Pages for Live Binary Links
+            // 2. Web Scrape Seed Web Pages for Live Binary Links (HTML Stream Parsing)
             for (String pageUrl : SEED_WEB_PAGES) {
                 try {
                     URL url = new URL(pageUrl);
@@ -297,6 +309,76 @@ public class ServerManager {
                 } catch (Exception ignored) {}
             }
         }, "dynamic-mirror-scraper").start();
+    }
+
+    private void fetchGitHubReleaseAssetsApi() {
+        try {
+            URL url = new URL("https://api.github.com/repos/Latikeshh/Data-Waster/releases/latest");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "DataBurner-App");
+            conn.setRequestProperty("Accept", "application/vnd.github+json");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            if (conn.getResponseCode() == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                reader.close();
+
+                JSONObject root = new JSONObject(sb.toString());
+                if (root.has("assets")) {
+                    JSONArray assets = root.getJSONArray("assets");
+                    for (int i = 0; i < assets.length(); i++) {
+                        JSONObject asset = assets.getJSONObject(i);
+                        String downloadUrl = asset.optString("browser_download_url", null);
+                        if (downloadUrl != null && !downloadUrl.isEmpty()) {
+                            String testRes = validateAndGetStatus(downloadUrl);
+                            if (testRes != null && testRes.startsWith("HTTP")) {
+                                urlTestResults.put(downloadUrl, testRes + " [GitHub REST API]");
+                                addExtractedServer(downloadUrl);
+                            }
+                        }
+                    }
+                }
+            }
+            conn.disconnect();
+        } catch (Exception ignored) {}
+    }
+
+    private void fetchUbuntuReleaseManifestApi() {
+        try {
+            URL url = new URL("https://releases.ubuntu.com/24.04/MD5SUMS");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestProperty("User-Agent", "DataBurner-App");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            if (conn.getResponseCode() == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.endsWith(".iso") || line.contains(".iso ")) {
+                        String[] parts = line.split("\\s+");
+                        if (parts.length >= 2) {
+                            String filename = parts[parts.length - 1].replace("*", "");
+                            String isoUrl = "https://releases.ubuntu.com/24.04/" + filename;
+                            String testRes = validateAndGetStatus(isoUrl);
+                            if (testRes != null && testRes.startsWith("HTTP")) {
+                                urlTestResults.put(isoUrl, testRes + " [Ubuntu Native Manifest]");
+                                addExtractedServer(isoUrl);
+                            }
+                        }
+                    }
+                }
+                reader.close();
+            }
+            conn.disconnect();
+        } catch (Exception ignored) {}
     }
 
     private String validateAndGetStatus(String candidateUrl) {

@@ -1,5 +1,7 @@
 package com.databurner.service;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Icon;
@@ -15,17 +17,51 @@ import com.databurner.R;
 public class BurnTileService extends TileService {
 
     private SharedPreferences prefs;
+    private SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
+
+    public static void requestTileUpdate(Context context) {
+        if (context == null) return;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                TileService.requestListeningState(context.getApplicationContext(), new ComponentName(context.getApplicationContext(), BurnTileService.class));
+            }
+        } catch (Exception ignored) {}
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
         prefs = getSharedPreferences("burn_stats", MODE_PRIVATE);
+        preferenceChangeListener = (sharedPreferences, key) -> {
+            if ("service_running".equals(key) || "service_status".equals(key)) {
+                updateTileState();
+            }
+        };
     }
 
     @Override
     public void onStartListening() {
         super.onStartListening();
+        if (prefs != null && preferenceChangeListener != null) {
+            prefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
+        }
         updateTileState();
+    }
+
+    @Override
+    public void onStopListening() {
+        super.onStopListening();
+        if (prefs != null && preferenceChangeListener != null) {
+            prefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener);
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (prefs != null && preferenceChangeListener != null) {
+            prefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener);
+        }
+        super.onDestroy();
     }
 
     @Override
@@ -43,6 +79,7 @@ public class BurnTileService extends TileService {
             prefs.edit().putBoolean("service_running", true).apply();
         }
         updateTileState();
+        requestTileUpdate(this);
     }
 
     private void updateTileState() {

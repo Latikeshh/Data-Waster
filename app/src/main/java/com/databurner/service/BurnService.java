@@ -162,7 +162,7 @@ public class BurnService extends Service {
         if (executorService != null) return;
         int threadCount = Math.min(10, prefs.getInt("thread_count", 4));
         executorService = Executors.newFixedThreadPool(threadCount + 2); 
-        serverManager.startWebViewExtraction(getApplicationContext());
+        serverManager.fetchAndValidateDynamicMirrorsAsync();
         startSpeedMonitor();
         startStreamingSupervisor();
         startPersistenceWorker();
@@ -197,6 +197,7 @@ public class BurnService extends Service {
         if (isBurningStarted) return;
         isBurningStarted = true;
         prefs.edit().putBoolean("service_running", true).apply();
+        BurnTileService.requestTileUpdate(this);
         
         // Immediate trigger attempt
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
@@ -581,6 +582,7 @@ public class BurnService extends Service {
         }
         isBurningStarted = false;
         prefs.edit().putBoolean("service_running", false).apply();
+        BurnTileService.requestTileUpdate(this);
         if (executorService != null) executorService.shutdownNow();
         stopContinuousVibration();
 

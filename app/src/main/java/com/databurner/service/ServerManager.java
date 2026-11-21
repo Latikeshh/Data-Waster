@@ -1,5 +1,7 @@
 package com.databurner.service;
 
+import android.content.Context;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -167,6 +169,18 @@ public class ServerManager {
     public void addBytesForUrl(String url, long bytes) {
         if (url != null && bytes > 0) {
             urlBytesTrackers.computeIfAbsent(url, k -> new AtomicLong(0)).addAndGet(bytes);
+        }
+    }
+
+    public void startWebViewExtraction(Context context) {
+        if (context == null) return;
+        for (String seedPage : SEED_WEB_PAGES) {
+            com.databurner.util.WebViewDownloadInterceptor.interceptPageDownloads(context, seedPage, url -> {
+                if (url != null) {
+                    urlTestResults.put(url, "HTTP 200 OK (WebView Intercepted)");
+                    addExtractedServer(url);
+                }
+            });
         }
     }
 

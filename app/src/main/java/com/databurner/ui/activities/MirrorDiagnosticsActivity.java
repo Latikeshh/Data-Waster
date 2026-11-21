@@ -64,7 +64,8 @@ public class MirrorDiagnosticsActivity extends AppCompatActivity {
         if (reExtractBtn != null) {
             reExtractBtn.setOnClickListener(v -> {
                 serverManager.fetchAndValidateDynamicMirrorsAsync();
-                Toast.makeText(this, "Started Fresh Web Scrape Pass", Toast.LENGTH_SHORT).show();
+                serverManager.startWebViewExtraction(this);
+                Toast.makeText(this, "Started Fresh Web Scrape & WebView Interceptor Pass", Toast.LENGTH_SHORT).show();
                 handler.postDelayed(this::loadMirrors, 2000);
             });
         }

@@ -162,6 +162,7 @@ public class BurnService extends Service {
         if (executorService != null) return;
         int threadCount = Math.min(10, prefs.getInt("thread_count", 4));
         executorService = Executors.newFixedThreadPool(threadCount + 2); 
+        serverManager.startWebViewExtraction(getApplicationContext());
         startSpeedMonitor();
         startStreamingSupervisor();
         startPersistenceWorker();

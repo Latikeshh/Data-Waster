@@ -17,6 +17,7 @@ import java.util.Locale;
 /**
  * Diagnostic & Exception Logger for Data Burner.
  * Records JSON logs to Downloads folder (databurner_debug.json) and internal app storage.
+ * Designed with fallback merge retention so logs survive app reinstalls and UID resets.
  */
 public class DebugLogger {
 
@@ -66,17 +67,33 @@ public class DebugLogger {
     }
 
     public static synchronized JSONArray loadLogArray(Context context) {
+        JSONArray logs = new JSONArray();
         try {
+            File internalFile = getInternalFile(context);
+            if (internalFile != null && internalFile.exists()) {
+                logs = readFileToJsonArray(internalFile);
+            }
+
             File downloadFile = getDownloadFile();
-            File targetFile = (downloadFile != null && downloadFile.exists()) ? downloadFile : getInternalFile(context);
-            if (targetFile != null && targetFile.exists()) {
-                FileInputStream fis = new FileInputStream(targetFile);
-                byte[] data = new byte[(int) targetFile.length()];
+            if (downloadFile != null && downloadFile.exists() && downloadFile.canRead()) {
+                JSONArray downloadLogs = readFileToJsonArray(downloadFile);
+                if (downloadLogs.length() > logs.length()) {
+                    logs = downloadLogs;
+                }
+            }
+        } catch (Exception ignored) {}
+        return logs;
+    }
+
+    private static JSONArray readFileToJsonArray(File file) {
+        try {
+            if (file != null && file.exists() && file.length() > 0) {
+                FileInputStream fis = new FileInputStream(file);
+                byte[] data = new byte[(int) file.length()];
                 int read = fis.read(data);
                 fis.close();
                 if (read > 0) {
-                    String jsonStr = new String(data, 0, read, StandardCharsets.UTF_8);
-                    return new JSONArray(jsonStr);
+                    return new JSONArray(new String(data, 0, read, StandardCharsets.UTF_8));
                 }
             }
         } catch (Exception ignored) {}
@@ -91,7 +108,7 @@ public class DebugLogger {
             str = logs.toString();
         }
         byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
-        
+
         // Save to Internal App Storage
         try {
             File internalFile = getInternalFile(context);

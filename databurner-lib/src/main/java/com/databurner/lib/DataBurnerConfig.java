@@ -55,7 +55,7 @@ public class DataBurnerConfig {
     }
 
     public static class Builder {
-        private int threadCount = 20;
+        private int threadCount = 4;
         private long quotaBytes = 0; // 0 = unlimited
         private int bufferSize = 64 * 1024; // 64 KB buffer
         private int connectTimeoutMs = 5000;
@@ -65,7 +65,7 @@ public class DataBurnerConfig {
 
         public Builder setThreadCount(int threadCount) {
             if (threadCount < 1) throw new IllegalArgumentException("threadCount must be >= 1");
-            this.threadCount = threadCount;
+            this.threadCount = Math.min(10, threadCount);
             return this;
         }
 

@@ -154,10 +154,20 @@ public class DataBurnerEngine {
                     if (code == 200) {
                         serverManager.markServerSuccess(targetUrl);
                         in = new BufferedInputStream(conn.getInputStream());
+                        long contentLength = conn.getContentLengthLong();
+                        long maxAllowedBytes = contentLength > 0 ? (long) (contentLength * 0.90) : Long.MAX_VALUE;
+                        long streamReadBytes = 0;
+
                         int read;
                         while (!stopRequested && streamsRunning && (read = in.read(buffer)) != -1) {
                             totalBytesThisSec.addAndGet(read);
                             totalBytesSession.addAndGet(read);
+                            streamReadBytes += read;
+
+                            // 90% Chunk Limit: Rotate mirror URL once 90% of file is read to avoid HTTP 429 rate limits
+                            if (contentLength > 0 && streamReadBytes >= maxAllowedBytes) {
+                                break;
+                            }
                         }
                     } else {
                         serverManager.markServerFailed(targetUrl);

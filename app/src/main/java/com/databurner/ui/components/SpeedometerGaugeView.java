@@ -145,13 +145,14 @@ public class SpeedometerGaugeView extends View {
     }
 
     private void updateDynamicGradient(float speed, boolean force) {
+        float fillPercentage = currentMaxSpeed > 0 ? (speed / currentMaxSpeed) * 100f : 0f;
         int tier;
-        if (speed >= 50f) {
-            tier = 3; // Ultra Fiery Flame
-        } else if (speed >= 15f) {
-            tier = 2; // High Speed Emerald Cyan
+        if (fillPercentage >= 67f) {
+            tier = 3; // 67% - 100% Capacity: Fiery Flame Palette (#FF385C Red/Yellow/Green)
+        } else if (fillPercentage >= 34f) {
+            tier = 2; // 34% - 66% Capacity: High-Speed Emerald Cyan (#34D399 to #3B82F6)
         } else {
-            tier = 1; // Normal Cool Blue
+            tier = 1; // 0% - 33% Capacity: Cool Cyan / Indigo Blue (#06B6D4 to #6366F1)
         }
 
         if (tier != currentGradientTier || force) {

@@ -45,7 +45,7 @@ public class BurnService extends Service {
     public static final String ACTION_RESET_TOTAL = "RESET_TOTAL";
     public static final String ACTION_NEW_SESSION = "NEW_SESSION";
 
-    private static final int THREAD_COUNT = 20;
+    private static final int THREAD_COUNT = 4;
     private final ServerManager serverManager = new ServerManager();
 
     private volatile boolean stopRequested = false;
@@ -160,7 +160,7 @@ public class BurnService extends Service {
 
     private void startEngine() {
         if (executorService != null) return;
-        int threadCount = prefs.getInt("thread_count", 20);
+        int threadCount = Math.min(10, prefs.getInt("thread_count", 4));
         executorService = Executors.newFixedThreadPool(threadCount + 2); 
         startSpeedMonitor();
         startStreamingSupervisor();
@@ -308,7 +308,7 @@ public class BurnService extends Service {
 
     private void startStreams() {
         streamsRunning = true;
-        int threadCount = prefs.getInt("thread_count", 20);
+        int threadCount = Math.min(10, prefs.getInt("thread_count", 4));
         for (int i = 0; i < threadCount; i++) {
             final int threadIndex = i;
             executorService.execute(() -> runStreamLoop(threadIndex));
@@ -344,10 +344,20 @@ public class BurnService extends Service {
                     if (code == 200) {
                         serverManager.markServerSuccess(targetUrl);
                         in = new BufferedInputStream(conn.getInputStream());
+                        long contentLength = conn.getContentLengthLong();
+                        long maxAllowedBytes = contentLength > 0 ? (long) (contentLength * 0.90) : Long.MAX_VALUE;
+                        long streamReadBytes = 0;
+
                         int read;
                         while (!stopRequested && streamsRunning && (read = in.read(buffer)) != -1) {
                             totalBytesThisSec.addAndGet(read);
                             totalBytesSession.addAndGet(read);
+                            streamReadBytes += read;
+
+                            // 90% Chunk Limit: Rotate mirror URL once 90% of file is read to avoid HTTP 429 rate limits
+                            if (contentLength > 0 && streamReadBytes >= maxAllowedBytes) {
+                                break;
+                            }
                         }
                     } else {
                         serverManager.markServerFailed(targetUrl);

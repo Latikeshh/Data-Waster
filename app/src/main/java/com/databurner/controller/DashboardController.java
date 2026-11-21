@@ -352,15 +352,16 @@ public class DashboardController {
     }
 
     public static void showThreadSliderDialog(Activity activity, SharedPreferences prefs, Runnable onUpdated) {
-        String[] threadOptions = new String[]{"5 Threads", "10 Threads", "20 Threads (Default)", "35 Threads", "50 Threads (Stress)"};
-        int[] threadValues = new int[]{5, 10, 20, 35, 50};
-        int currentThreads = prefs.getInt("thread_count", 20);
+        String[] threadOptions = new String[]{"1 Thread", "2 Threads", "4 Threads (Default)", "6 Threads", "8 Threads", "10 Threads (Maximum)"};
+        int[] threadValues = new int[]{1, 2, 4, 6, 8, 10};
+        int currentThreads = prefs.getInt("thread_count", 4);
         int selectedIndex = 2;
-        if (currentThreads == 5) selectedIndex = 0;
-        else if (currentThreads == 10) selectedIndex = 1;
-        else if (currentThreads == 20) selectedIndex = 2;
-        else if (currentThreads == 35) selectedIndex = 3;
-        else if (currentThreads == 50) selectedIndex = 4;
+        if (currentThreads == 1) selectedIndex = 0;
+        else if (currentThreads == 2) selectedIndex = 1;
+        else if (currentThreads == 4) selectedIndex = 2;
+        else if (currentThreads == 6) selectedIndex = 3;
+        else if (currentThreads == 8) selectedIndex = 4;
+        else if (currentThreads == 10) selectedIndex = 5;
 
         showSingleChoiceDialog(activity, "Parallel Concurrency Threads", threadOptions, selectedIndex, which -> {
             if (which >= 0 && which < threadValues.length) {

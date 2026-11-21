@@ -67,6 +67,7 @@ public class MirrorDiagnosticsActivity extends AppCompatActivity {
                 String badge = info.isBlacklisted ? "🚫 [FAILED/BLACKLISTED]" : "✅ [ACTIVE 200 OK]";
                 sb.append("────────────────────────────────────────\n");
                 sb.append("#").append(count++).append(" ").append(badge).append("\n");
+                sb.append("Name      : ").append(info.friendlyName).append("\n");
                 sb.append("Source    : ").append(info.source).append("\n");
                 sb.append("Time      : ").append(info.timestamp12Hr).append("\n");
                 sb.append("Failures  : ").append(info.failureCount).append("\n");

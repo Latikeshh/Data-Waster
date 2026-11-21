@@ -3,6 +3,7 @@ package com.databurner.service;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import java.util.regex.Pattern;
 /**
  * High-performance Server Manager for Data Burner.
  * Features a Smart Dynamic Web Link Extractor that parses live web pages,
- * current-session tracking, 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
+ * friendly name labelling, current-session tracking, 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
  */
 public class ServerManager {
 
@@ -42,7 +43,7 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
 
-        // Default High-Speed Google Android SDKs, Ubuntu ISOs & GitHub Release CDNs
+        // High-Speed Google Android SDKs, Ubuntu ISOs & GitHub Release CDNs
         DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
         DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
         DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
@@ -59,18 +60,52 @@ public class ServerManager {
 
     public static class MirrorStatusInfo {
         public final String url;
+        public final String friendlyName;
         public final String source; // PREDEFINED_CDN, DYNAMIC_EXTRACTED, CUSTOM_INPUT
         public final boolean isBlacklisted;
         public final String timestamp12Hr;
         public final int failureCount;
 
-        public MirrorStatusInfo(String url, String source, boolean isBlacklisted, String timestamp12Hr, int failureCount) {
+        public MirrorStatusInfo(String url, String friendlyName, String source, boolean isBlacklisted, String timestamp12Hr, int failureCount) {
             this.url = url;
+            this.friendlyName = friendlyName;
             this.source = source;
             this.isBlacklisted = isBlacklisted;
             this.timestamp12Hr = timestamp12Hr;
             this.failureCount = failureCount;
         }
+    }
+
+    public static String getFriendlyNameForUrl(String url) {
+        if (url == null) return "Unknown Endpoint";
+        if (url.contains("dl.google.com") && url.contains("platform-tools")) return "📦 Google Android SDK Platform Tools";
+        if (url.contains("dl.google.com") && url.contains("commandlinetools-mac")) return "📦 Google Command Line Tools (Mac)";
+        if (url.contains("dl.google.com") && url.contains("commandlinetools-win")) return "📦 Google Command Line Tools (Windows)";
+        if (url.contains("dl.google.com")) return "📦 Google Android SDK Repository";
+        if (url.contains("releases.ubuntu.com/24.04")) return "💿 Ubuntu 24.04 LTS Desktop ISO";
+        if (url.contains("releases.ubuntu.com/22.04")) return "💿 Ubuntu 22.04 LTS Desktop ISO";
+        if (url.contains("releases.ubuntu.com")) return "💿 Ubuntu Linux ISO CDN";
+        if (url.contains("python.org")) return "🐍 Python Official Release Installer";
+        if (url.contains("github.com") && url.contains("releases")) return "🚀 GitHub Release Binary (Data-Waster)";
+        if (url.contains("ash-speed.hetzner.com")) return "⚡ Hetzner CDN (Ashburn US 10G)";
+        if (url.contains("speed.hetzner.de")) return "⚡ Hetzner CDN (Germany 10G)";
+        if (url.contains("speed.cloudflare.com")) return "⚡ Cloudflare Anycast CDN (100G)";
+        if (url.contains("proof.ovh.net")) return "⚡ OVH Telecom CDN (France 1G)";
+        if (url.contains("mirror.nl.leaseweb.net")) return "⚡ Leaseweb CDN (Netherlands 1G)";
+        if (url.contains("mirror.us.leaseweb.net")) return "⚡ Leaseweb CDN (US 1G)";
+        if (url.contains("speedtest.selectel.ru")) return "⚡ Selectel High-Speed CDN";
+        if (url.contains("speedtest.tokyo2.linode.com")) return "⚡ Linode CDN (Tokyo Asia 1G)";
+        if (url.contains("speedtest.syd1.linode.com")) return "⚡ Linode CDN (Sydney Australia 1G)";
+        if (url.contains("speedtest.tele2.net")) return "⚡ Tele2 Speedtest Mirror";
+
+        try {
+            URI uri = new URI(url);
+            String host = uri.getHost();
+            if (host != null) {
+                return "🌐 Extracted Web Binary (" + host.replace("www.", "") + ")";
+            }
+        } catch (Exception ignored) {}
+        return "🌐 Extracted Stream Mirror";
     }
 
     private final List<String> activeServers = new ArrayList<>(DEFAULT_STREAM_SERVERS);
@@ -88,15 +123,12 @@ public class ServerManager {
         fetchAndValidateDynamicMirrorsAsync();
     }
 
-    /**
-     * Starts a fresh session: Clears previous session failure history and triggers fresh web scraping.
-     */
     public synchronized void startNewSession() {
         failureCounts.clear();
         blacklistTimestamps.clear();
         activeServers.clear();
         activeServers.addAll(DEFAULT_STREAM_SERVERS);
-        
+
         String nowStr = TIME_12HR_FORMAT.format(new Date());
         for (String url : DEFAULT_STREAM_SERVERS) {
             serverSources.put(url, "PREDEFINED_CDN");
@@ -198,10 +230,8 @@ public class ServerManager {
         int count = failureCounts.getOrDefault(url, 0) + 1;
         failureCounts.put(url, count);
 
-        // Strict Blacklisting: If ANY server (Predefined or Extracted) fails 3 times, blacklist for 60s
         if (count >= 3) {
             blacklistTimestamps.put(url, System.currentTimeMillis() + 60_000L);
-            // Trigger background re-extraction if active servers are dropping
             fetchAndValidateDynamicMirrorsAsync();
         }
     }
@@ -215,8 +245,9 @@ public class ServerManager {
             String source = serverSources.getOrDefault(url, "DYNAMIC_EXTRACTED");
             String timestamp = serverTimestamps.getOrDefault(url, TIME_12HR_FORMAT.format(new Date()));
             int failures = failureCounts.getOrDefault(url, 0);
+            String friendlyName = getFriendlyNameForUrl(url);
 
-            list.add(new MirrorStatusInfo(url, source, isBlacklisted, timestamp, failures));
+            list.add(new MirrorStatusInfo(url, friendlyName, source, isBlacklisted, timestamp, failures));
         }
         return list;
     }

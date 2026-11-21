@@ -22,7 +22,7 @@ import java.util.Locale;
 public class DebugLogger {
 
     private static final String FILE_NAME = "databurner_debug.json";
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a", Locale.US);
 
     public static synchronized void logEvent(Context context, String eventType, String message, long sessionSeconds, long totalBytesBurned, int activeThreads) {
         logFull(context, eventType, message, null, sessionSeconds, totalBytesBurned, activeThreads);

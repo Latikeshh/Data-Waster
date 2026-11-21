@@ -122,6 +122,11 @@ public class MainActivity extends AppCompatActivity {
 					Intent intent = new Intent(this, DebugLogActivity.class);
 					startActivity(intent);
 					return true;
+				} else if (id == R.id.action_mirror_diagnostics) {
+					triggerHapticFeedback(topAppBar);
+					Intent intent = new Intent(this, com.databurner.ui.activities.MirrorDiagnosticsActivity.class);
+					startActivity(intent);
+					return true;
 				} else if (id == R.id.action_about) {
 					triggerHapticFeedback(topAppBar);
 					Intent intent = new Intent(this, AboutActivity.class);

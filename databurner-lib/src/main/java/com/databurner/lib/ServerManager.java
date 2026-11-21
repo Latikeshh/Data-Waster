@@ -4,10 +4,13 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
@@ -15,14 +18,15 @@ import java.util.regex.Pattern;
 
 /**
  * High-performance Server Manager for Data Burner Library.
- * Features a Smart Dynamic Web Link Extractor that parses live developer web pages
- * (developer.android.com/studio, releases.ubuntu.com) to extract direct binary CDN download links.
+ * Features a Smart Dynamic Web Link Extractor that parses live web pages,
+ * current-session tracking, 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
  */
 public class ServerManager {
 
     public static final List<String> DEFAULT_STREAM_SERVERS = new ArrayList<>();
     private static final List<String> SEED_WEB_PAGES = new ArrayList<>();
     private static final Pattern BINARY_URL_PATTERN = Pattern.compile("https?://[^\"]+?\\.(?:zip|iso|dmg|exe|bin|apk)");
+    private static final SimpleDateFormat TIME_12HR_FORMAT = new SimpleDateFormat("hh:mm:ss a", Locale.US);
     private static final Random random = new Random();
 
     static {
@@ -38,7 +42,7 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
 
-        // Dynamic High-Speed Google Android SDKs & Official Open-Source CDNs
+        // Default High-Speed Google Android SDKs, Ubuntu ISOs & GitHub Release CDNs
         DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
         DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
         DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
@@ -53,7 +57,25 @@ public class ServerManager {
         SEED_WEB_PAGES.add("https://api.github.com/repos/Latikeshh/Data-Waster/releases/latest");
     }
 
+    public static class MirrorStatusInfo {
+        public final String url;
+        public final String source; // PREDEFINED_CDN, DYNAMIC_EXTRACTED, CUSTOM_INPUT
+        public final boolean isBlacklisted;
+        public final String timestamp12Hr;
+        public final int failureCount;
+
+        public MirrorStatusInfo(String url, String source, boolean isBlacklisted, String timestamp12Hr, int failureCount) {
+            this.url = url;
+            this.source = source;
+            this.isBlacklisted = isBlacklisted;
+            this.timestamp12Hr = timestamp12Hr;
+            this.failureCount = failureCount;
+        }
+    }
+
     private final List<String> activeServers = new ArrayList<>();
+    private final Map<String, String> serverSources = new HashMap<>();
+    private final Map<String, String> serverTimestamps = new HashMap<>();
     private final Map<String, Integer> failureCounts = new HashMap<>();
     private final Map<String, Long> blacklistTimestamps = new HashMap<>();
 
@@ -63,6 +85,11 @@ public class ServerManager {
 
     public ServerManager(List<String> customServers) {
         activeServers.addAll(DEFAULT_STREAM_SERVERS);
+        String nowStr = TIME_12HR_FORMAT.format(new Date());
+        for (String url : DEFAULT_STREAM_SERVERS) {
+            serverSources.put(url, "PREDEFINED_CDN");
+            serverTimestamps.put(url, nowStr);
+        }
         if (customServers != null && !customServers.isEmpty()) {
             for (String server : customServers) {
                 addCustomServer(server);
@@ -71,10 +98,20 @@ public class ServerManager {
         fetchAndValidateDynamicMirrorsAsync();
     }
 
-    /**
-     * Asynchronously scrapes seed web pages (Google Android Studio, Ubuntu Releases),
-     * parses HTML for direct binary CDN URLs, and registers verified links into active stream pool.
-     */
+    public synchronized void startNewSession() {
+        failureCounts.clear();
+        blacklistTimestamps.clear();
+        activeServers.clear();
+        activeServers.addAll(DEFAULT_STREAM_SERVERS);
+
+        String nowStr = TIME_12HR_FORMAT.format(new Date());
+        for (String url : DEFAULT_STREAM_SERVERS) {
+            serverSources.put(url, "PREDEFINED_CDN");
+            serverTimestamps.put(url, nowStr);
+        }
+        fetchAndValidateDynamicMirrorsAsync();
+    }
+
     public void fetchAndValidateDynamicMirrorsAsync() {
         new Thread(() -> {
             for (String pageUrl : SEED_WEB_PAGES) {
@@ -102,7 +139,7 @@ public class ServerManager {
                         while (matcher.find() && extractedCount < 3) {
                             String extractedUrl = matcher.group();
                             if (validateBinaryUrl(extractedUrl)) {
-                                addCustomServer(extractedUrl);
+                                addExtractedServer(extractedUrl);
                                 extractedCount++;
                             }
                         }
@@ -129,10 +166,6 @@ public class ServerManager {
         }
     }
 
-    /**
-     * Evenly assigns a mirror URL to a worker thread based on threadIndex.
-     * E.g. 20 threads and 5 URLs = exactly 4 threads per URL.
-     */
     public synchronized String getServerUrlForThread(int threadIndex) {
         long now = System.currentTimeMillis();
         List<String> available = new ArrayList<>();
@@ -175,16 +208,44 @@ public class ServerManager {
 
         if (count >= 3) {
             blacklistTimestamps.put(url, System.currentTimeMillis() + 60_000L);
+            fetchAndValidateDynamicMirrorsAsync();
         }
+    }
+
+    public synchronized List<MirrorStatusInfo> getSessionMirrorStatusList() {
+        long now = System.currentTimeMillis();
+        List<MirrorStatusInfo> list = new ArrayList<>();
+        for (String url : activeServers) {
+            Long blacklistedUntil = blacklistTimestamps.get(url);
+            boolean isBlacklisted = (blacklistedUntil != null && now < blacklistedUntil);
+            String source = serverSources.getOrDefault(url, "DYNAMIC_EXTRACTED");
+            String timestamp = serverTimestamps.getOrDefault(url, TIME_12HR_FORMAT.format(new Date()));
+            int failures = failureCounts.getOrDefault(url, 0);
+
+            list.add(new MirrorStatusInfo(url, source, isBlacklisted, timestamp, failures));
+        }
+        return list;
     }
 
     public synchronized List<String> getActiveServers() {
         return Collections.unmodifiableList(new ArrayList<>(activeServers));
     }
 
+    public synchronized void addExtractedServer(String url) {
+        if (url != null && !url.trim().isEmpty() && !activeServers.contains(url.trim())) {
+            String trimmed = url.trim();
+            activeServers.add(trimmed);
+            serverSources.put(trimmed, "DYNAMIC_EXTRACTED");
+            serverTimestamps.put(trimmed, TIME_12HR_FORMAT.format(new Date()));
+        }
+    }
+
     public synchronized void addCustomServer(String url) {
         if (url != null && !url.trim().isEmpty() && !activeServers.contains(url.trim())) {
-            activeServers.add(url.trim());
+            String trimmed = url.trim();
+            activeServers.add(trimmed);
+            serverSources.put(trimmed, "CUSTOM_INPUT");
+            serverTimestamps.put(trimmed, TIME_12HR_FORMAT.format(new Date()));
         }
     }
 
@@ -193,15 +254,13 @@ public class ServerManager {
             activeServers.remove(url);
             failureCounts.remove(url);
             blacklistTimestamps.remove(url);
+            serverSources.remove(url);
+            serverTimestamps.remove(url);
         }
     }
 
     public synchronized void resetToDefaults() {
-        activeServers.clear();
-        activeServers.addAll(DEFAULT_STREAM_SERVERS);
-        failureCounts.clear();
-        blacklistTimestamps.clear();
-        fetchAndValidateDynamicMirrorsAsync();
+        startNewSession();
     }
 
     public synchronized int getServerCount() {

@@ -49,6 +49,11 @@
             android:exported="false"
             android:theme="@style/Theme.DataBurner" />
 
+        <activity
+            android:name=".ui.activities.MirrorDiagnosticsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.DataBurner" />
+
         <service
             android:name=".service.BurnService"
             android:enabled="true"

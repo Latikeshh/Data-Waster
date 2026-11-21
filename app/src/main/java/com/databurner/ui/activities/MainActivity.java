@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
 	private MaterialButton startBtn, stopBtn, quotaBtn;
 	private MaterialCardView heroCard;
 	private MaterialSwitch guardSwitch;
-	private final ServerManager serverManager = new ServerManager();
+	private final ServerManager serverManager = ServerManager.getInstance();
 
 	// 3D Card Flip View Bindings
 	private View heroCardFront, heroCardBack;

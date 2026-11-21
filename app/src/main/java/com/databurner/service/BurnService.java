@@ -46,7 +46,7 @@ public class BurnService extends Service {
     public static final String ACTION_NEW_SESSION = "NEW_SESSION";
 
     private static final int THREAD_COUNT = 4;
-    private final ServerManager serverManager = new ServerManager();
+    private final ServerManager serverManager = ServerManager.getInstance();
 
     private volatile boolean stopRequested = false;
     private volatile boolean streamsRunning = false;
@@ -331,6 +331,7 @@ public class BurnService extends Service {
                 String targetUrl = null;
                 try {
                     targetUrl = serverManager.getServerUrlForThread(threadIndex);
+                    serverManager.markUrlActive(targetUrl);
                     URL url = new URL(targetUrl);
                     conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestProperty("Connection", "keep-alive");
@@ -378,6 +379,9 @@ public class BurnService extends Service {
                             activeThreads.get()
                     );
                 } finally {
+                    if (targetUrl != null) {
+                        serverManager.markUrlIdle(targetUrl);
+                    }
                     try {
                         if (in != null) in.close();
                     } catch (Exception ignored) {}

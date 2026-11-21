@@ -20,12 +20,12 @@ import java.util.Locale;
 
 public class MirrorDiagnosticsActivity extends AppCompatActivity {
 
-    private final ServerManager serverManager = new ServerManager();
+    private final ServerManager serverManager = ServerManager.getInstance();
     private TextView mirrorsContainerText, summaryText;
     private MaterialButton tabExtractedBtn, tabPredefinedBtn;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable autoRefreshRunnable;
-    private boolean showDynamicExtractedTab = true;
+    private boolean showDynamicExtractedTab = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,10 +138,12 @@ public class MirrorDiagnosticsActivity extends AppCompatActivity {
                 String badge;
                 if (info.isBlacklisted) {
                     badge = "🚫 [BLACKLISTED / FAILED]";
+                } else if (info.activeConnections > 0) {
+                    badge = "🔥 [WORKING / STREAMING NOW (" + info.activeConnections + " active thread" + (info.activeConnections > 1 ? "s" : "") + ")]";
                 } else if (info.downloadedBytes > 0) {
-                    badge = "✅ [ACTIVE / STREAMING]";
+                    badge = "✅ [IDLE / RECENTLY USED]";
                 } else {
-                    badge = "⏸️ [STANDBY / READY]";
+                    badge = "⏸️ [IDLE / STANDBY]";
                 }
 
                 double mb = info.downloadedBytes / (1024.0 * 1024.0);
@@ -150,6 +152,7 @@ public class MirrorDiagnosticsActivity extends AppCompatActivity {
                 sb.append("#").append(count++).append(" ").append(badge).append("\n");
                 sb.append("Name       : ").append(info.friendlyName).append("\n");
                 sb.append("Test Status: ").append(info.testResultStatus).append("\n");
+                sb.append("Active Conn: ").append(info.activeConnections > 0 ? info.activeConnections + " thread(s) downloading" : "0 (Idle)").append("\n");
                 sb.append("Data Used  : ").append(String.format(Locale.US, "%.2f MB", mb)).append("\n");
                 sb.append("Extracted  : ").append(info.timestamp12Hr).append("\n");
                 sb.append("Failures   : ").append(info.failureCount).append("\n");

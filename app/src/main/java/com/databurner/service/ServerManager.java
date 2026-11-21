@@ -66,6 +66,19 @@ public class ServerManager {
         SEED_WEB_PAGES.add("https://api.github.com/repos/Latikeshh/Data-Waster/releases/latest");
     }
 
+    private static volatile ServerManager instance;
+
+    public static ServerManager getInstance() {
+        if (instance == null) {
+            synchronized (ServerManager.class) {
+                if (instance == null) {
+                    instance = new ServerManager();
+                }
+            }
+        }
+        return instance;
+    }
+
     public static class MirrorStatusInfo {
         public final String url;
         public final String friendlyName;
@@ -76,10 +89,12 @@ public class ServerManager {
         public final long downloadedBytes;
         public final String testResultStatus;
         public final boolean isExtractionSuccess;
+        public final int activeConnections;
 
         public MirrorStatusInfo(String url, String friendlyName, String source, boolean isBlacklisted,
                                 String timestamp12Hr, int failureCount, long downloadedBytes,
-                                String testResultStatus, boolean isExtractionSuccess) {
+                                String testResultStatus, boolean isExtractionSuccess,
+                                int activeConnections) {
             this.url = url;
             this.friendlyName = friendlyName;
             this.source = source;
@@ -89,6 +104,13 @@ public class ServerManager {
             this.downloadedBytes = downloadedBytes;
             this.testResultStatus = testResultStatus;
             this.isExtractionSuccess = isExtractionSuccess;
+            this.activeConnections = activeConnections;
+        }
+
+        public MirrorStatusInfo(String url, String friendlyName, String source, boolean isBlacklisted,
+                                String timestamp12Hr, int failureCount, long downloadedBytes,
+                                String testResultStatus, boolean isExtractionSuccess) {
+            this(url, friendlyName, source, isBlacklisted, timestamp12Hr, failureCount, downloadedBytes, testResultStatus, isExtractionSuccess, 0);
         }
     }
 
@@ -124,20 +146,21 @@ public class ServerManager {
         return "🌐 Extracted Stream Mirror";
     }
 
-    private final List<String> activeServers = new ArrayList<>(DEFAULT_STREAM_SERVERS);
-    private final Map<String, String> serverSources = new HashMap<>();
-    private final Map<String, String> serverTimestamps = new HashMap<>();
-    private final Map<String, Integer> failureCounts = new HashMap<>();
-    private final Map<String, Long> blacklistTimestamps = new HashMap<>();
-    private final Map<String, AtomicLong> urlBytesTrackers = new ConcurrentHashMap<>();
-    private final Map<String, String> urlTestResults = new ConcurrentHashMap<>();
+    private static final List<String> activeServers = new ArrayList<>(DEFAULT_STREAM_SERVERS);
+    private static final Map<String, String> serverSources = new HashMap<>();
+    private static final Map<String, String> serverTimestamps = new HashMap<>();
+    private static final Map<String, Integer> failureCounts = new HashMap<>();
+    private static final Map<String, Long> blacklistTimestamps = new HashMap<>();
+    private static final Map<String, AtomicLong> urlBytesTrackers = new ConcurrentHashMap<>();
+    private static final Map<String, String> urlTestResults = new ConcurrentHashMap<>();
+    private static final Map<String, java.util.concurrent.atomic.AtomicInteger> activeConnectionsPerUrl = new ConcurrentHashMap<>();
 
     public ServerManager() {
         String nowStr = TIME_12HR_FORMAT.format(new Date());
         for (String url : DEFAULT_STREAM_SERVERS) {
-            serverSources.put(url, "PREDEFINED_CDN");
-            serverTimestamps.put(url, nowStr);
-            urlTestResults.put(url, "HTTP 200 OK (Predefined)");
+            serverSources.putIfAbsent(url, "PREDEFINED_CDN");
+            serverTimestamps.putIfAbsent(url, nowStr);
+            urlTestResults.putIfAbsent(url, "HTTP 200 OK (Predefined)");
         }
         fetchAndValidateDynamicMirrorsAsync();
     }
@@ -169,6 +192,27 @@ public class ServerManager {
         if (url != null && bytes > 0) {
             urlBytesTrackers.computeIfAbsent(url, k -> new AtomicLong(0)).addAndGet(bytes);
         }
+    }
+
+    public void markUrlActive(String url) {
+        if (url != null) {
+            activeConnectionsPerUrl.computeIfAbsent(url, k -> new java.util.concurrent.atomic.AtomicInteger(0)).incrementAndGet();
+        }
+    }
+
+    public void markUrlIdle(String url) {
+        if (url != null) {
+            activeConnectionsPerUrl.computeIfPresent(url, (k, counter) -> {
+                int val = counter.decrementAndGet();
+                return val < 0 ? new java.util.concurrent.atomic.AtomicInteger(0) : counter;
+            });
+        }
+    }
+
+    public int getActiveConnectionsForUrl(String url) {
+        if (url == null) return 0;
+        java.util.concurrent.atomic.AtomicInteger counter = activeConnectionsPerUrl.get(url);
+        return counter != null ? Math.max(0, counter.get()) : 0;
     }
 
     public void startWebViewExtraction(Context context) {
@@ -340,8 +384,9 @@ public class ServerManager {
             long bytes = bytesTracker != null ? bytesTracker.get() : 0L;
             String testResult = urlTestResults.getOrDefault(url, "HTTP 200 OK (Validated)");
             boolean isSuccess = !isBlacklisted && (testResult.startsWith("HTTP 200") || testResult.startsWith("HTTP 206") || testResult.startsWith("HTTP 3"));
+            int activeConns = getActiveConnectionsForUrl(url);
 
-            list.add(new MirrorStatusInfo(url, friendlyName, source, isBlacklisted, timestamp, failures, bytes, testResult, isSuccess));
+            list.add(new MirrorStatusInfo(url, friendlyName, source, isBlacklisted, timestamp, failures, bytes, testResult, isSuccess, activeConns));
         }
         return list;
     }

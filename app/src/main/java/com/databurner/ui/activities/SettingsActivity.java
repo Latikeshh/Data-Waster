@@ -27,7 +27,7 @@ public class SettingsActivity extends AppCompatActivity {
         DashboardController.applyWindowInsets(findViewById(R.id.settingsMain), R.id.settingsAppBarLayout, 0, R.id.settingsScrollView);
 
         prefs = getSharedPreferences("burn_stats", MODE_PRIVATE);
-        serverManager = new ServerManager();
+        serverManager = ServerManager.getInstance();
 
         MaterialToolbar toolbar = findViewById(R.id.settingsToolbar);
         if (toolbar != null) {

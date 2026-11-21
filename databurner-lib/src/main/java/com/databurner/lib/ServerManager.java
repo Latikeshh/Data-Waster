@@ -36,7 +36,7 @@ public class ServerManager {
     private static final Random random = new Random();
 
     static {
-        // High-Speed 10G+ Global CDN Mirror Endpoints
+        // High-Speed 10G+ Global CDN Mirror Endpoints (Predefined)
         DEFAULT_STREAM_SERVERS.add("https://ash-speed.hetzner.com/1GB.bin");
         DEFAULT_STREAM_SERVERS.add("https://speed.hetzner.de/1GB.bin");
         DEFAULT_STREAM_SERVERS.add("https://speed.cloudflare.com/__down?bytes=100000000");
@@ -47,14 +47,6 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.tokyo2.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
-
-        // High-Speed Google Android SDKs, Ubuntu ISOs & GitHub Release CDNs
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
-        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
-        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso");
-        DEFAULT_STREAM_SERVERS.add("https://github.com/Latikeshh/Data-Waster/releases/download/26.11.20/app-release.apk");
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/platform-tools_r35.0.2-windows.zip");
 
         // Candidates for Dynamic Extraction Testing on Session Start
         DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
@@ -104,30 +96,30 @@ public class ServerManager {
         if (url.contains("dl.google.com") && url.contains("commandlinetools-mac")) return "📦 Google Command Line Tools (Mac)";
         if (url.contains("dl.google.com") && url.contains("commandlinetools-win")) return "📦 Google Command Line Tools (Windows)";
         if (url.contains("dl.google.com")) return "📦 Google Android SDK Repository";
-        if (url.contains("releases.ubuntu.com/24.04")) return "💿 Ubuntu 24.04 LTS Desktop ISO";
-        if (url.contains("releases.ubuntu.com/22.04")) return "💿 Ubuntu 22.04 LTS Desktop ISO";
-        if (url.contains("releases.ubuntu.com")) return "💿 Ubuntu Linux ISO CDN";
-        if (url.contains("python.org")) return "🐍 Python Official Release Installer";
-        if (url.contains("github.com") && url.contains("releases")) return "🚀 GitHub Release Binary (Data-Waster)";
-        if (url.contains("ash-speed.hetzner.com")) return "⚡ Hetzner CDN (Ashburn US 10G)";
-        if (url.contains("speed.hetzner.de")) return "⚡ Hetzner CDN (Germany 10G)";
-        if (url.contains("speed.cloudflare.com")) return "⚡ Cloudflare Anycast CDN (100G)";
-        if (url.contains("proof.ovh.net")) return "⚡ OVH Telecom CDN (France 1G)";
-        if (url.contains("mirror.nl.leaseweb.net")) return "⚡ Leaseweb CDN (Netherlands 1G)";
-        if (url.contains("mirror.us.leaseweb.net")) return "⚡ Leaseweb CDN (US 1G)";
-        if (url.contains("speedtest.selectel.ru")) return "⚡ Selectel High-Speed CDN";
-        if (url.contains("speedtest.tokyo2.linode.com")) return "⚡ Linode CDN (Tokyo Asia 1G)";
-        if (url.contains("speedtest.syd1.linode.com")) return "⚡ Linode CDN (Sydney Australia 1G)";
-        if (url.contains("speedtest.tele2.net")) return "⚡ Tele2 Speedtest Mirror";
+        if (url.contains("releases.ubuntu.com/24.04")) return "CD Ubuntu 24.04 LTS Desktop ISO";
+        if (url.contains("releases.ubuntu.com/22.04")) return "CD Ubuntu 22.04 LTS Desktop ISO";
+        if (url.contains("releases.ubuntu.com")) return "CD Ubuntu Linux ISO CDN";
+        if (url.contains("python.org")) return "Python Official Release Installer";
+        if (url.contains("github.com") && url.contains("releases")) return "GitHub Release Binary (Data-Waster)";
+        if (url.contains("ash-speed.hetzner.com")) return "Hetzner CDN (Ashburn US 10G)";
+        if (url.contains("speed.hetzner.de")) return "Hetzner CDN (Germany 10G)";
+        if (url.contains("speed.cloudflare.com")) return "Cloudflare Anycast CDN (100G)";
+        if (url.contains("proof.ovh.net")) return "OVH Telecom CDN (France 1G)";
+        if (url.contains("mirror.nl.leaseweb.net")) return "Leaseweb CDN (Netherlands 1G)";
+        if (url.contains("mirror.us.leaseweb.net")) return "Leaseweb CDN (US 1G)";
+        if (url.contains("speedtest.selectel.ru")) return "Selectel High-Speed CDN";
+        if (url.contains("speedtest.tokyo2.linode.com")) return "Linode CDN (Tokyo Asia 1G)";
+        if (url.contains("speedtest.syd1.linode.com")) return "Linode CDN (Sydney Australia 1G)";
+        if (url.contains("speedtest.tele2.net")) return "Tele2 Speedtest Mirror";
 
         try {
             URI uri = new URI(url);
             String host = uri.getHost();
             if (host != null) {
-                return "🌐 Extracted Web Binary (" + host.replace("www.", "") + ")";
+                return "Extracted Web Binary (" + host.replace("www.", "") + ")";
             }
         } catch (Exception ignored) {}
-        return "🌐 Extracted Stream Mirror";
+        return "Extracted Stream Mirror";
     }
 
     private final List<String> activeServers = new ArrayList<>();

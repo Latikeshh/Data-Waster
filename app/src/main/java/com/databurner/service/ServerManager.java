@@ -24,8 +24,8 @@ import java.util.regex.Pattern;
 /**
  * High-performance Server Manager for Data Burner.
  * Features a Smart Dynamic Web Link Extractor that parses live web pages,
- * per-URL byte tracking, extraction test result validation, friendly name labelling,
- * current-session tracking, 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
+ * handles relative/absolute URLs, Range validation, friendly name labelling, current-session tracking,
+ * 12-hour AM/PM timestamps, and strict blacklisting for both default and extracted mirrors.
  */
 public class ServerManager {
 
@@ -38,7 +38,7 @@ public class ServerManager {
     private static final Random random = new Random();
 
     static {
-        // High-Speed 10G+ Global CDN Mirror Endpoints
+        // High-Speed 10G+ Global CDN Mirror Endpoints (Predefined)
         DEFAULT_STREAM_SERVERS.add("https://ash-speed.hetzner.com/1GB.bin");
         DEFAULT_STREAM_SERVERS.add("https://speed.hetzner.de/1GB.bin");
         DEFAULT_STREAM_SERVERS.add("https://speed.cloudflare.com/__down?bytes=100000000");
@@ -50,15 +50,7 @@ public class ServerManager {
         DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
         DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
 
-        // High-Speed Google Android SDKs, Ubuntu ISOs & GitHub Release CDNs
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
-        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
-        DEFAULT_STREAM_SERVERS.add("https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso");
-        DEFAULT_STREAM_SERVERS.add("https://github.com/Latikeshh/Data-Waster/releases/download/26.11.20/app-release.apk");
-        DEFAULT_STREAM_SERVERS.add("https://dl.google.com/android/repository/platform-tools_r35.0.2-windows.zip");
-
-        // Dynamic Seed Candidates to test and register
+        // Candidates for Dynamic Extraction Testing on Session Start
         DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
         DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip");
         DYNAMIC_SEED_CANDIDATES.add("https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso");
@@ -193,6 +185,7 @@ public class ServerManager {
 
     public void fetchAndValidateDynamicMirrorsAsync() {
         new Thread(() -> {
+            // 1. Validate & Register Dynamic Seed Candidates
             for (String candidateUrl : DYNAMIC_SEED_CANDIDATES) {
                 String testRes = validateAndGetStatus(candidateUrl);
                 if (testRes != null && testRes.startsWith("HTTP")) {
@@ -201,6 +194,7 @@ public class ServerManager {
                 }
             }
 
+            // 2. Web Scrape Seed Web Pages for Live Binary Links
             for (String pageUrl : SEED_WEB_PAGES) {
                 try {
                     URL url = new URL(pageUrl);
@@ -224,6 +218,7 @@ public class ServerManager {
                         String htmlStr = html.toString();
                         int extractedCount = 0;
 
+                        // Scrape relative & absolute href links
                         Matcher hrefMatcher = LINK_HREF_PATTERN.matcher(htmlStr);
                         while (hrefMatcher.find() && extractedCount < 5) {
                             String href = hrefMatcher.group(1);
@@ -242,6 +237,7 @@ public class ServerManager {
                             } catch (Exception ignored) {}
                         }
 
+                        // Scrape raw absolute URLs
                         Matcher rawMatcher = RAW_URL_PATTERN.matcher(htmlStr);
                         while (rawMatcher.find() && extractedCount < 8) {
                             String rawUrl = rawMatcher.group();

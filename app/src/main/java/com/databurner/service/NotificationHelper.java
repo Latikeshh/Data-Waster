@@ -75,7 +75,7 @@ public class NotificationHelper {
         if (notificationBuilder == null) {
             String badge = (initialBadge != null && !initialBadge.isEmpty()) ? initialBadge : "5G";
             int color = "5G".equals(badge) ? Color.parseColor("#34D399") : Color.parseColor("#A8C7FF");
-            Bitmap iconBitmap = makeNetworkBadgeBitmap(badge, color);
+            Bitmap iconBitmap = makeIntegerBadgeBitmap(badge, color);
 
             notificationBuilder = new NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(IconCompat.createWithBitmap(iconBitmap))
@@ -121,6 +121,7 @@ public class NotificationHelper {
 
     public void updateNotification(boolean isBurning, boolean isGuard, String status, float speedMb, String time, long totalBytes, String networkBadge) {
         double gb = totalBytes / (1024.0 * 1024.0 * 1024.0);
+        double mb = totalBytes / (1024.0 * 1024.0);
         String title;
         String content;
 
@@ -142,12 +143,18 @@ public class NotificationHelper {
         }
 
         Bitmap iconBitmap;
-        if (isBurning && gb >= 0.1) {
-            iconBitmap = makeTwoTextBitmap(String.format(Locale.US, "%.1f", gb), "GB");
+        if (isBurning && gb >= 1.0) {
+            // Display integer GB value (e.g. 1, 2, 12, 100)
+            int intGb = (int) Math.floor(gb);
+            iconBitmap = makeIntegerBadgeBitmap(String.valueOf(intGb), Color.parseColor("#A8C7FF"));
+        } else if (isBurning && mb >= 1.0) {
+            // Display integer MB value (e.g. 250, 500, 950)
+            int intMb = (int) Math.floor(mb);
+            iconBitmap = makeIntegerBadgeBitmap(String.valueOf(intMb), Color.parseColor("#34D399"));
         } else {
             String badge = (networkBadge != null && !networkBadge.isEmpty()) ? networkBadge : "5G";
             int color = "5G".equals(badge) ? Color.parseColor("#34D399") : Color.parseColor("#A8C7FF");
-            iconBitmap = makeNetworkBadgeBitmap(badge, color);
+            iconBitmap = makeIntegerBadgeBitmap(badge, color);
         }
 
         getBaseBuilder(networkBadge).setContentTitle(title)
@@ -159,35 +166,7 @@ public class NotificationHelper {
         }
     }
 
-    private Bitmap makeTwoTextBitmap(String bigText, String smallText) {
-        final int width = 128;
-        final int height = 128;
-        Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bmp);
-        canvas.drawColor(Color.TRANSPARENT);
-
-        Paint big = new Paint(Paint.ANTI_ALIAS_FLAG);
-        big.setColor(Color.parseColor("#A8C7FF"));
-        big.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
-        big.setTextAlign(Paint.Align.CENTER);
-        big.setTextSize(86);
-        big.setStyle(Paint.Style.FILL);
-
-        Paint small = new Paint(Paint.ANTI_ALIAS_FLAG);
-        small.setColor(Color.WHITE);
-        small.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
-        small.setTextAlign(Paint.Align.CENTER);
-        small.setTextSize(36);
-        small.setStyle(Paint.Style.FILL);
-
-        float centerX = width / 2f;
-        canvas.drawText(bigText, centerX, 80, big);
-        canvas.drawText(smallText, centerX, 118, small);
-
-        return bmp;
-    }
-
-    public Bitmap makeNetworkBadgeBitmap(String badgeText, int color) {
+    public Bitmap makeIntegerBadgeBitmap(String intText, int color) {
         final int width = 128;
         final int height = 128;
         Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
@@ -198,12 +177,24 @@ public class NotificationHelper {
         paint.setColor(color);
         paint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(badgeText.length() > 2 ? 64 : 82);
         paint.setStyle(Paint.Style.FILL);
+
+        float fontSize = 84f;
+        if (intText.length() == 3) {
+            fontSize = 62f;
+        } else if (intText.length() >= 4) {
+            fontSize = 46f;
+        }
+        paint.setTextSize(fontSize);
+
+        // Auto-scale down font size to guarantee text fits inside 80px safe circle
+        while (paint.measureText(intText) > 80f && paint.getTextSize() > 20f) {
+            paint.setTextSize(paint.getTextSize() - 2f);
+        }
 
         float centerX = width / 2f;
         float centerY = (height / 2f) - ((paint.descent() + paint.ascent()) / 2f);
-        canvas.drawText(badgeText, centerX, centerY, paint);
+        canvas.drawText(intText, centerX, centerY, paint);
 
         return bmp;
     }

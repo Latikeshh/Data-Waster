@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.databurner.R;
 import com.databurner.controller.DashboardController;
+import com.databurner.service.MirrorStatusInfo;
 import com.databurner.service.ServerManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -108,10 +109,10 @@ public class MirrorDiagnosticsActivity extends AppCompatActivity {
 
     private void loadMirrors() {
         try {
-            List<ServerManager.MirrorStatusInfo> allList = serverManager.getSessionMirrorStatusList();
-            List<ServerManager.MirrorStatusInfo> filteredList = new ArrayList<>();
+            List<MirrorStatusInfo> allList = serverManager.getSessionMirrorStatusList();
+            List<MirrorStatusInfo> filteredList = new ArrayList<>();
 
-            for (ServerManager.MirrorStatusInfo info : allList) {
+            for (MirrorStatusInfo info : allList) {
                 boolean isPredefined = "PREDEFINED_CDN".equalsIgnoreCase(info.source);
                 if (showDynamicExtractedTab && !isPredefined) {
                     filteredList.add(info);
@@ -134,7 +135,7 @@ public class MirrorDiagnosticsActivity extends AppCompatActivity {
 
             StringBuilder sb = new StringBuilder();
             int count = 1;
-            for (ServerManager.MirrorStatusInfo info : filteredList) {
+            for (MirrorStatusInfo info : filteredList) {
                 String badge;
                 if (info.isBlacklisted) {
                     badge = "🚫 [BLACKLISTED / FAILED]";

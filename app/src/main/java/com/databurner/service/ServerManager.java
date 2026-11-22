@@ -44,15 +44,7 @@ public class ServerManager {
     static {
         // High-Speed 10G+ Global CDN Mirror Endpoints (Predefined)
         DEFAULT_STREAM_SERVERS.add("https://ash-speed.hetzner.com/1GB.bin");
-        DEFAULT_STREAM_SERVERS.add("https://speed.hetzner.de/1GB.bin");
-        DEFAULT_STREAM_SERVERS.add("https://speed.cloudflare.com/__down?bytes=100000000");
         DEFAULT_STREAM_SERVERS.add("https://proof.ovh.net/files/1Gb.dat");
-        DEFAULT_STREAM_SERVERS.add("https://mirror.nl.leaseweb.net/speedtest/1000mb.bin");
-        DEFAULT_STREAM_SERVERS.add("https://mirror.us.leaseweb.net/speedtest/1000mb.bin");
-        DEFAULT_STREAM_SERVERS.add("https://speedtest.selectel.ru/100MB.bin");
-        DEFAULT_STREAM_SERVERS.add("https://speedtest.tokyo2.linode.com/100MB-linode.bin");
-        DEFAULT_STREAM_SERVERS.add("https://speedtest.syd1.linode.com/100MB-linode.bin");
-        DEFAULT_STREAM_SERVERS.add("http://speedtest.tele2.net/100MB.zip");
 
         // Candidates for Dynamic Extraction Testing on Session Start
         DYNAMIC_SEED_CANDIDATES.add("https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip");
@@ -83,40 +75,7 @@ public class ServerManager {
         return instance;
     }
 
-    public static class MirrorStatusInfo {
-        public final String url;
-        public final String friendlyName;
-        public final String source; // PREDEFINED_CDN, DYNAMIC_EXTRACTED, CUSTOM_INPUT
-        public final boolean isBlacklisted;
-        public final String timestamp12Hr;
-        public final int failureCount;
-        public final long downloadedBytes;
-        public final String testResultStatus;
-        public final boolean isExtractionSuccess;
-        public final int activeConnections;
 
-        public MirrorStatusInfo(String url, String friendlyName, String source, boolean isBlacklisted,
-                                String timestamp12Hr, int failureCount, long downloadedBytes,
-                                String testResultStatus, boolean isExtractionSuccess,
-                                int activeConnections) {
-            this.url = url;
-            this.friendlyName = friendlyName;
-            this.source = source;
-            this.isBlacklisted = isBlacklisted;
-            this.timestamp12Hr = timestamp12Hr;
-            this.failureCount = failureCount;
-            this.downloadedBytes = downloadedBytes;
-            this.testResultStatus = testResultStatus;
-            this.isExtractionSuccess = isExtractionSuccess;
-            this.activeConnections = activeConnections;
-        }
-
-        public MirrorStatusInfo(String url, String friendlyName, String source, boolean isBlacklisted,
-                                String timestamp12Hr, int failureCount, long downloadedBytes,
-                                String testResultStatus, boolean isExtractionSuccess) {
-            this(url, friendlyName, source, isBlacklisted, timestamp12Hr, failureCount, downloadedBytes, testResultStatus, isExtractionSuccess, 0);
-        }
-    }
 
     public static String getFriendlyNameForUrl(String url) {
         if (url == null) return "Unknown Endpoint";

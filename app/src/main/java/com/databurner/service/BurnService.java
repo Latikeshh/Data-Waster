@@ -16,19 +16,19 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.Vibrator;
-import android.net.wifi.WifiManager;
 import android.telephony.TelephonyManager;
-
-import com.databurner.util.DebugLogger;
 
 import androidx.annotation.RequiresPermission;
 import androidx.core.app.ActivityCompat;
+
+import com.databurner.util.DebugLogger;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;

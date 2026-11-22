@@ -16,14 +16,14 @@ public class DataBurnerConfig {
     private final String userAgent;
     private final List<String> customServers;
 
-    private DataBurnerConfig(Builder builder) {
-        this.threadCount = builder.threadCount;
-        this.quotaBytes = builder.quotaBytes;
-        this.bufferSize = builder.bufferSize;
-        this.connectTimeoutMs = builder.connectTimeoutMs;
-        this.readTimeoutMs = builder.readTimeoutMs;
-        this.userAgent = builder.userAgent;
-        this.customServers = builder.customServers;
+    protected DataBurnerConfig(DataBurnerConfigBuilder builder) {
+        this.threadCount = builder.getThreadCount();
+        this.quotaBytes = builder.getQuotaBytes();
+        this.bufferSize = builder.getBufferSize();
+        this.connectTimeoutMs = builder.getConnectTimeoutMs();
+        this.readTimeoutMs = builder.getReadTimeoutMs();
+        this.userAgent = builder.getUserAgent();
+        this.customServers = builder.getCustomServers();
     }
 
     public int getThreadCount() {
@@ -54,60 +54,6 @@ public class DataBurnerConfig {
         return customServers;
     }
 
-    public static class Builder {
-        private int threadCount = 4;
-        private long quotaBytes = 0; // 0 = unlimited
-        private int bufferSize = 64 * 1024; // 64 KB buffer
-        private int connectTimeoutMs = 5000;
-        private int readTimeoutMs = 8000;
-        private String userAgent = "DataBurnerEngine/1.0";
-        private final List<String> customServers = new ArrayList<>();
-
-        public Builder setThreadCount(int threadCount) {
-            if (threadCount < 1) throw new IllegalArgumentException("threadCount must be >= 1");
-            this.threadCount = Math.min(10, threadCount);
-            return this;
-        }
-
-        public Builder setQuotaMB(long quotaMB) {
-            this.quotaBytes = quotaMB * 1024L * 1024L;
-            return this;
-        }
-
-        public Builder setQuotaBytes(long quotaBytes) {
-            this.quotaBytes = quotaBytes;
-            return this;
-        }
-
-        public Builder setBufferSize(int bufferSize) {
-            this.bufferSize = bufferSize;
-            return this;
-        }
-
-        public Builder setConnectTimeoutMs(int connectTimeoutMs) {
-            this.connectTimeoutMs = connectTimeoutMs;
-            return this;
-        }
-
-        public Builder setReadTimeoutMs(int readTimeoutMs) {
-            this.readTimeoutMs = readTimeoutMs;
-            return this;
-        }
-
-        public Builder setUserAgent(String userAgent) {
-            this.userAgent = userAgent;
-            return this;
-        }
-
-        public Builder addCustomServer(String url) {
-            if (url != null && !url.trim().isEmpty()) {
-                this.customServers.add(url.trim());
-            }
-            return this;
-        }
-
-        public DataBurnerConfig build() {
-            return new DataBurnerConfig(this);
-        }
+    public static class Builder extends DataBurnerConfigBuilder {
     }
 }

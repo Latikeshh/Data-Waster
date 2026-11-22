@@ -1,17 +1,17 @@
 package com.databurner.ui.activities;
 
 import android.Manifest;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Build;
-import android.os.Bundle;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.BatteryManager;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.HapticFeedbackConstants;
@@ -33,7 +33,6 @@ import com.databurner.ui.components.SpeedometerGaugeView;
 import com.databurner.ui.dialogs.HudDiagnosticsDialog;
 import com.databurner.ui.holders.FeatureCardHolder;
 import com.databurner.ui.holders.StatCardHolder;
-
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -281,14 +280,19 @@ public class MainActivity extends AppCompatActivity {
 		boolean needNotification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
 				ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
 
+		boolean needStorage = false;
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+			needStorage = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
+		}
+
 		boolean needBatteryOptimization = false;
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 			android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
 			needBatteryOptimization = (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName()));
 		}
 
-		if (needPhoneState || needNotification || needBatteryOptimization) {
-			showMandatoryPermissionDialog(needPhoneState, needNotification, needBatteryOptimization);
+		if (needPhoneState || needNotification || needStorage || needBatteryOptimization) {
+			showMandatoryPermissionDialog(needPhoneState, needNotification, needBatteryOptimization, needStorage);
 			return false;
 		}
 		if (permissionDialog != null && permissionDialog.isShowing()) {
@@ -298,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
 		return true;
 	}
 
-	private void showMandatoryPermissionDialog(boolean needPhoneState, boolean needNotification, boolean needBatteryOptimization) {
+	private void showMandatoryPermissionDialog(boolean needPhoneState, boolean needNotification, boolean needBatteryOptimization, boolean needStorage) {
 		if (permissionDialog != null && permissionDialog.isShowing()) {
 			return;
 		}
@@ -309,6 +313,9 @@ public class MainActivity extends AppCompatActivity {
 		}
 		if (needNotification) {
 			msg.append("• Notifications: Show active speed & status bar notifications.\n");
+		}
+		if (needStorage) {
+			msg.append("• Storage Permission: Save accelerated downloads (APKs, ISOs, ZIPs) to your Downloads folder.\n");
 		}
 		if (needBatteryOptimization) {
 			msg.append("• Unrestricted Battery: Keep streaming data when screen is OFF or using other apps.\n");
@@ -321,10 +328,14 @@ public class MainActivity extends AppCompatActivity {
 				.setCancelable(false)
 				.setPositiveButton("Grant Permissions", (dialog, which) -> {
 					permissionDialog = null;
-					if (needPhoneState || needNotification) {
+					if (needPhoneState || needNotification || needStorage) {
 						java.util.List<String> list = new java.util.ArrayList<>();
 						if (needPhoneState) list.add(Manifest.permission.READ_PHONE_STATE);
 						if (needNotification) list.add(Manifest.permission.POST_NOTIFICATIONS);
+						if (needStorage) {
+							list.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+							list.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+						}
 						ActivityCompat.requestPermissions(MainActivity.this, list.toArray(new String[0]), 100);
 					} else if (needBatteryOptimization) {
 						try {

@@ -21,10 +21,6 @@ import java.util.regex.Pattern;
  */
 public class WebViewDownloadInterceptor {
 
-    public interface OnUrlExtractedListener {
-        void onExtracted(String url);
-    }
-
     private static final Pattern BINARY_FILE_PATTERN = Pattern.compile(".*\\.(zip|iso|dmg|exe|bin|apk)($|\\?.*)", Pattern.CASE_INSENSITIVE);
 
     public static void interceptPageDownloads(Context context, String pageUrl, OnUrlExtractedListener listener) {
